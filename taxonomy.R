@@ -4,20 +4,28 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-19                                       ║
-# ║ Last Modified  : 2025-09-22                                       ║
+# ║ Last Modified  : 2025-10-14                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
 
 ## Libraries
 
+library(magrittr, include.only = "%<>%")
+library(dplyr)
+library(stringr)
 library(file2meco)
 library(microeco)
 library(ggplot2)
+library(ggstats)
 library(ggnested)
 library(ggh4x)
-library(ggradar)
-library(ggtern)
+library(reshape2)
+library(qiime2R)
+
+## Colors and shapes
+
+source("/home/sergio/projects/fungi-ITS-TEF1/colors.R")
 
 
 ## Import QIIME 2 files
@@ -66,13 +74,9 @@ meco_TEF1 <- qiime2meco(dada2_TEF1_file_path,
                         sample_table = metadata_TEF1_file_path,
                         taxonomy_table = taxonomy_TEF1_file_path)
 
-## Colors and shapes
+## Change amplicon to plot
 
-source("/home/sergio/projects/diversity-cereal/colors.R")
-
-## Chamge amplicon to plot
-
-meco <- meco_TEF1
+meco <- meco_ITS # meco_TEF1
 
 ## Relabel UNITE prefixes for cleaner plotting
 
@@ -114,7 +118,7 @@ t_stacked_family <- trans_abund$new(dataset = meco,
                                     prefix = "g__")
 
 pdf(file.path(outdir, paste0(color_palette, "_barplot_genus.pdf")),
-    width = 7.5,
+    width = 14,
     height = 5.5)
 
 t_stacked_family$plot_bar(ggnested = TRUE,
@@ -125,58 +129,167 @@ t_stacked_family$plot_bar(ggnested = TRUE,
                                                     "_colors")),
                           # xtext_angle = 90,
                           # xtext_size = 6,
-                          facet = c("Cereal")) + 
+                          facet = c("Location")) + 
   theme(ggh4x.facet.nestline = element_line(colour = "grey95"))
 
 dev.off()
 
-## Boxplot
 
-t_family <- trans_abund$new(dataset = meco,
-                            taxrank = "Family",
-                            ntaxa = 20)
+## Bubble plot
 
-pdf(file.path(outdir, "boxplot_family.pdf"))
+tef1_wide <- read_qza("/home/sergio/projects/fungi-ITS-TEF1/local/TEF1_filtered_table.qza")$data
+tef1_wide %<>% t() %>% as.data.frame()
+tef1_taxa <- read_qza("/home/sergio/projects/fungi-ITS-TEF1/local/TEF1_taxonomy.qza")$data %>% parse_taxonomy()
+tef1_taxa %<>% .[.$Genus == "Fusarium" & !is.na(.$Genus), ]
+tef1_taxa[is.na(tef1_taxa$Species), "Species"] <- rep("sp", sum(is.na(tef1_taxa$Species)))
+tef1_taxa %<>% mutate(Species = gsub("'", "", Species))
+tef1_taxa %<>%mutate(Species = ifelse(!grepl("^F", Species),
+                          paste(Genus, Species, sep = "_"),
+                          Species))
+tef1_wide %<>% .[, colnames(.) %in% rownames(tef1_taxa)] %>% {`colnames<-`(., tef1_taxa[colnames(.), "Species"])}
+tef1_wide <- tef1_wide[, colnames(tef1_wide) != "Fusarium_dimerum"] # Fusarium dimerum is now Bisifusarium dimerum -> https://www.fusarium.org/page/SpeciesListBisifusarium
+colnames(tef1_wide) <- gsub("\\.[0-9]+$", "", colnames(tef1_wide))
+tef1_wide <- sapply(unique(colnames(tef1_wide)), function(x) rowSums(tef1_wide[names(tef1_wide) == x])) %>% as.data.frame()
+tef1_meta <- read.csv(metadata_TEF1_file_path, header = TRUE, sep = "\t")
+tef1_wide$ID <- rownames(tef1_wide)
+tef1_wide %<>% merge(., tef1_meta[, c("ID", "Cereal")], by = "ID")
+tef1_wide <- aggregate(. ~ Cereal, data = tef1_wide[,-1], FUN = sum)
+rownames(tef1_wide) <- tef1_wide$Cereal
+tef1_wide$Cereal <- NULL
+tef1_wide %<>% cbind(rownames(.), .) %>% {`rownames<-`(., NULL)}
+tef1_wide[, 2:ncol(tef1_wide)] <- t(apply(tef1_wide[, 2:ncol(tef1_wide)], 1, function(x) {
+  row_sum <- sum(x)
+  if(row_sum == 0) {
+    return(rep(0, length(x)))
+  } else {
+    return((x / row_sum) * 100)
+  }
+}))
+tef1_long <- melt(tef1_wide, id.vars = c("rownames(.)"))
+colnames(tef1_long) <- c("Sample", "variable", "value")
+tef1_long  %<>%
+  mutate(Amplicon = case_when(
+    TRUE ~ "TEF1"))
 
-t_family$plot_box(group = "Cereal",
-                  xtext_size = 10,
-                  xtext_angle = 30,
-                  ytitle_size = 15) + 
-  theme(
-    panel.background = element_rect(fill = "white", color = NA),
-    panel.border = element_rect(color = "black", fill = NA),
-    panel.grid.major = element_line(color = "white"),
-    panel.grid.minor = element_line(color = "white", size = 0.5),
-    legend.position = c(0.9, 0.85),
-    legend.background = element_rect(fill = "white", color = "black"),
-    legend.title = element_blank(),
-    legend.key.size = unit(1, "cm")
-  )
 
-dev.off()
+its_wide <- read_qza("/home/sergio/projects/fungi-ITS-TEF1/local/ITS_filtered_table.qza")$data
+its_wide %<>% t() %>% as.data.frame()
+its_taxa <- read_qza("/home/sergio/projects/fungi-ITS-TEF1/local/ITS_taxonomy.qza")$data %>% parse_taxonomy()
+its_taxa %<>% .[.$Genus == "Fusarium" & !is.na(.$Genus), ]
+its_taxa[is.na(its_taxa$Species), "Species"] <- rep("Fusarium_sp", sum(is.na(its_taxa$Species)))
+its_wide %<>% .[, colnames(.) %in% rownames(its_taxa)] %>% {`colnames<-`(., its_taxa[colnames(.), "Species"])}
+names(its_wide)[names(its_wide) == "Fusarium_lunatum"] <- "Fusarium_sp"
+its_wide <- sapply(unique(colnames(its_wide)), function(x) rowSums(its_wide[names(its_wide) == x])) %>% as.data.frame()
+its_meta <- read.csv(metadata_ITS_file_path, header = TRUE, sep = "\t")
+its_wide$ID <- rownames(its_wide)
+its_wide %<>% merge(., its_meta[, c("ID", "Cereal")], by = "ID")
+its_wide <- aggregate(. ~ Cereal, data = its_wide[,-1], FUN = sum)
+rownames(its_wide) <- its_wide$Cereal
+its_wide$Cereal <- NULL
+its_wide %<>% cbind(rownames(.), .) %>% {`rownames<-`(., NULL)}
+its_wide[, 2:ncol(its_wide)] <- t(apply(its_wide[, 2:ncol(its_wide)], 1, function(x) {
+  row_sum <- sum(x)
+  if(row_sum == 0) {
+    return(rep(0, length(x)))
+  } else {
+    return((x / row_sum) * 100)
+  }
+}))
+its_long <- melt(its_wide, id.vars = c("rownames(.)"))
+colnames(its_long) <- c("Sample", "variable", "value")
+its_long  %<>%
+  mutate(Amplicon = case_when(
+                    TRUE ~ "ITS2"))
 
-## Radar plot 
+comb_long <- rbind(its_long, tef1_long)
 
-t_radar <- trans_abund$new(dataset = meco,
-                           taxrank = "Class",
-                           ntaxa = 8,
-                           groupmean = "Cereal")
+comb_long  %<>%
+  mutate(sc = case_when(
+  variable == "Fusarium_sp" ~ " ",
+  variable == "Fusarium_tricinctum" ~ "FTSC",
+  variable == "Fusarium_oxysporum" ~ "FOSC",
+  variable == "Fusarium_sporotrichioides" ~ "FSAMSC",
+  variable == "Fusarium_redolens" ~ "FRSC",
+  variable == "Fusarium_poae" ~ "FSAMSC",
+  variable == "Fusarium_subglutinans" ~ "FFSC",
+  variable == "Fusarium_scirpi" ~ "FIESC",
+  variable == "Fusarium_coffeatum" ~ "FIESC",
+  variable == "Fusarium_hostae" ~ "FRSC",
+  variable == "Fusarium_iranicum" ~ "FTSC",
+  variable == "Fusarium_clavum" ~ "FIESC",
+  variable == "Fusarium_avenaceum" ~ "FTSC",
+  variable == "Fusarium_equiseti" ~ "FIESC",
+  variable == "Fusarium_pseudograminearum" ~ "FSAMSC",
+  variable == "Fusarium_acuminatum" ~ "FTSC",
+  variable == "Fusarium_langsethiae" ~ "FSAMSC",
+  variable == "Fusarium_torolosum" ~ "FTSC",
+  variable == "Fusarium_flagelliforme" ~ "FIESC",
+  variable == "FSAMSC26" ~ "FSAMSC",
+  variable == "Fusarium_proliferatum" ~ "FFSC",
+  variable == "Fusarium_graminearum" ~ "FSAMSC",
+  variable == "Fusarium_gracilipes" ~ "FIESC",
+  variable == "FFSCundesc" ~ "FFSC",
+  variable == "Fusarium_flocciferum" ~ "FTSC",
+  variable == "Fusarium_gamsii" ~ "FTSC",
+  variable == "FSAMSC25" ~ "FSAMSC",
+  variable == "Fusarium_lactis" ~ "FFSC",
+  variable == "Fusarium_culmorum" ~ "FSAMSC",
+  variable == "FTSCundesc" ~ "FTSC",
+  variable == "Fusarium_cerealis" ~ "FSAMSC",
+  variable == "Fusarium_nodosum" ~ "FSAMSC",
+  variable == "Fusarium_nelsonii" ~ "FCSC",
+  TRUE ~ "YOU SHOULD NOT BE SEEING THIS"
+))
 
-pdf(file.path(outdir, "radar_plot.pdf"))
+comb_long %<>% mutate(variable = str_replace(variable, "^Fusarium_", "F. "),
+                      Sample = str_replace(Sample, "Triticum", "Triticum sp."),
+                      Sample = str_replace(Sample, "AvenaSativa", "Avena sativa"),
+                      Sample = str_replace(Sample, "HordeumVulgare", "Hordeum vulgare"))
 
-t_radar$plot_radar(values.radar = c("0%", "25%", "50%"), grid.min = 0, grid.mid = 0.25, grid.max = 0.5)
 
-dev.off()
+comb_bubplot <- ggplot(comb_long, aes(x = Amplicon, y = variable)) +
+  geom_point(aes(size = value, fill = Amplicon, color = Amplicon), alpha = 0.75, shape = 21) +
+  scale_size_continuous(limits = c(0.000001, 100), range = c(1,10), breaks = c(1, 10, 50, 75)) +
+  scale_fill_manual(values = amplicon_colors) +
+  scale_color_manual(values = amplicon_colors) +
+  labs(x = "", y = "", size = "Relative abundance (%)", fill = "") +
+    guides(fill = guide_legend(override.aes = list(size = 6,
+                                                   shape = 21,
+                                                   color = amplicon_colors,
+                                                   fill  = amplicon_colors)),
+           color = "none",
+           size = guide_legend()) +
+  facet_grid(sc~Sample, scales = "free_y", space="free_y", switch = "y") +
+  theme(text = element_text(size = 15),
+        legend.key = element_blank(),
+        legend.title = element_text(size = 12),
+        panel.background = element_blank(), 
+        panel.border = element_rect(fill = NA, linewidth = 1),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y = element_text(face = "italic"),
+        strip.placement = "outside",
+        strip.text = element_text(
+          size = 11,                       
+          face = "bold.italic",                   
+          color = "black",                 
+          hjust = 0.5,                     
+          vjust = 0.5                      
+        ),
+        strip.text.y.left = element_text(
+          angle = 0,
+          hjust = 1,
+          face = "bold"),
+        strip.background = element_rect(
+          fill = NA,
+          color = NA
+        )) +
+  scale_y_discrete(limits = rev, position = "right")
 
-## Ternary plot 
+pdf(file.path(outdir, "bubble_plot.pdf"),
+    width = 9,
+    height = 12)
 
-t_tern <- trans_abund$new(dataset = meco,
-                          taxrank = "Genus",
-                          ntaxa = 8,
-                          groupmean = "Cereal")
-
-pdf(file.path(outdir, "tern_plot.pdf"))
-
-t_tern$plot_tern()
+comb_bubplot
 
 dev.off()
