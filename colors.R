@@ -6,12 +6,12 @@ location_colors <- c(FUE = "#df982c",
 location_shapes <- c(FUE = 17,
                      RIO = 15,
                      ZAM = 16)
-cereal_colors <- c(Triticum ="#028900",
-                   HordeumVulgare = "#602320",
-                   AvenaSativa = "#1b85b8")
-cereal_shapes <- c(Triticum = 17,
-                   HordeumVulgare = 16,
-                   AvenaSativa = 15)
+cereal_colors <- c("Triticum sp." = "#028900",
+                   "Hordeum vulgare" = "#602320",
+                   "Avena sativa" = "#1b85b8")
+cereal_shapes <- c("Triticum sp." = 17,
+                   "Hordeum vulgare" = 16,
+                   "Avena sativa" = 15)
 sample_map_colors <- c("#f1f1f1",
                        "#ade0d6",
                        "#04a472",

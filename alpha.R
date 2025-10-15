@@ -68,7 +68,7 @@ metadata %<>% mutate(
   Cereal = case_when(
     Cereal == "AvenaSativa" ~ "Avena sativa",
     Cereal == "HordeumVulgare" ~ "Hordeum vulgare",
-    TRUE ~ "Triticum"
+    TRUE ~ "Triticum sp."
   )
 )
 
@@ -88,10 +88,10 @@ comparisons_location <- combn(unique(metadata$Location), 2, simplify = FALSE)
 if (amplicon == "ITS"){
   shannon_pos_stat <- 3.6
   shannon_pos_stat_paired <- c(3.1, 3.35, 3.2)
-  simpson_pos_stat <- 0.9
+  simpson_pos_stat <- 0.92
   simpson_pos_stat_paired <- c(0.78, 0.85, 0.81)
-  chao1_pos_stat <- 820
-  chao1_pos_stat_paired <- c(730, 775, 750)
+  chao1_pos_stat <- 72
+  chao1_pos_stat_paired <- c(61, 66.6, 63.1)
 }
 if (amplicon == "TEF1"){
   shannon_pos_stat <- 11.2
@@ -127,27 +127,6 @@ shannon_c
 dev.off()
 
 
-pdf(file.path(outdir, "shannon_location.pdf"))
-
-shannon_l <- metadata %>%
-  ggboxplot("Location", "shannon_entropy",
-            color = "Location",
-            fill = "Location",
-            alpha = 0.1,
-            palette = location_colors,
-            add = "jitter",
-            shape = "Location") +
-  scale_shape_manual(values = location_shapes, name = "Location") +
-  ylab("Shannon") +
-  stat_compare_means(label.y = shannon_pos_stat) +
-  stat_compare_means(aes(label = after_stat(paste0('p = ', p.format, '\n', p.signif))),
-                     comparisons = comparisons_location,
-                     label.y = shannon_pos_stat_paired)
-
-shannon_l
-
-dev.off()
-
 ### Simpson
 
 pdf(file.path(outdir, "simpson_cereal.pdf"))
@@ -165,102 +144,46 @@ simpson_c <- metadata %>%
   stat_compare_means(label.y = simpson_pos_stat) +
   stat_compare_means(aes(label = after_stat(paste0('p = ', p.format, '\n', p.signif))),
                      comparisons = comparisons_cereal,
-                     label.y = simpson_pos_stat_paired)
+                     label.y = simpson_pos_stat_paired) +
+  theme(axis.text.x = element_text(face = "italic"))
 
 simpson_c
 
 dev.off()
 
-
-pdf(file.path(outdir, "simpson_location.pdf"))
-
-simpson_l <- metadata %>%
-  ggboxplot("Location", "simpson",
-            color = "Location",
-            fill = "Location",
-            alpha = 0.1,
-            palette = location_colors,
-            add = "jitter",
-            shape = "Location") +
-  scale_shape_manual(values = location_shapes, name = "Location") +
-  ylab("Inverse Simpson") +
-  stat_compare_means(label.y = simpson_pos_stat) +
-  stat_compare_means(aes(label = after_stat(paste0('p = ', p.format, '\n', p.signif))),
-                     comparisons = comparisons_location,
-                     label.y = simpson_pos_stat_paired)
-
-simpson_l
-
-dev.off()
-
 ### Chao1
 
-pdf(file.path(outdir, "chao1_treatment.pdf"))
+pdf(file.path(outdir, "chao1_cereal.pdf"))
 
-chao1_t <- metadata %>%
-  ggboxplot("Treatment", "chao1",
-            color = "Treatment",
-            fill = "Treatment",
+chao1_c <- metadata %>%
+  ggboxplot("Cereal", "chao1",
+            color = "Cereal",
+            fill = "Cereal",
             alpha = 0.1,
-            palette = treatment_colors,
+            palette = cereal_colors,
             add = "jitter",
-            shape = "Treatment") +
-  scale_shape_manual(values = treatment_shapes, name = "Treatment") +
+            shape = "Cereal") +
+  scale_shape_manual(values = cereal_shapes, name = "Cereal") +
   ylab("Chao1") +
   stat_compare_means(label.y = chao1_pos_stat) +
   stat_compare_means(aes(label = after_stat(paste0('p = ', p.format, '\n', p.signif))),
-                     comparisons = comparisons_treatment,
-                     label.y = chao1_pos_stat_paired)
+                     comparisons = comparisons_cereal,
+                     label.y = chao1_pos_stat_paired) +
+  theme(axis.text.x = element_text(face = "italic"))
 
-chao1_t
-
-dev.off()
-
-
-pdf(file.path(outdir, "chao1_location.pdf"))
-
-chao1_l <- metadata %>%
-  ggboxplot("Location", "chao1",
-            color = "Location",
-            fill = "Location",
-            alpha = 0.1,
-            palette = location_colors,
-            add = "jitter",
-            shape = "Location") +
-  scale_shape_manual(values = location_shapes, name = "Location") +
-  ylab("Chao1") +
-  stat_compare_means(label.y = chao1_pos_stat) +
-  stat_compare_means(aes(label = after_stat(paste0('p = ', p.format, '\n', p.signif))),
-                     comparisons = comparisons_location,
-                     label.y = chao1_pos_stat_paired)
-
-chao1_l
+chao1_c
 
 dev.off()
 
 ### Grouped plots
 
-pdf(file.path(outdir, "patched_treatment.pdf"),
-    width = 8.7,
-    height = 4.5)
+pdf(file.path(outdir, "patched_alhpa.pdf"),
+    width = 15,
+    height = 6.5)
 
-(chao1_t + theme(legend.position="none") +
-    shannon_t + theme(legend.position="none") +
-    simpson_t + theme(legend.position="none") &
-    theme(plot.tag.position = "topleft")) +
-  plot_layout(axis_titles = "collect") +
-  plot_annotation(tag_levels = 'A')
-
-dev.off()
-
-
-pdf(file.path(outdir, "patched_location.pdf"),
-    width = 8.7,
-    height = 4.5)
-
-(chao1_l + theme(legend.position="none") +
-    shannon_l + theme(legend.position="none") +
-    simpson_l + theme(legend.position="none") &
+(chao1_c + theme(legend.position="none") +
+    shannon_c + theme(legend.position="none") +
+    simpson_c + theme(legend.position="none") +
     theme(plot.tag.position = "topleft")) +
   plot_layout(axis_titles = "collect") +
   plot_annotation(tag_levels = 'A')
