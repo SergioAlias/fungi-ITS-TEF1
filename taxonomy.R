@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-19                                       ║
-# ║ Last Modified  : 2025-10-14                                       ║
+# ║ Last Modified  : 2025-10-15                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -77,6 +77,92 @@ meco_TEF1 <- qiime2meco(dada2_TEF1_file_path,
 ## Change amplicon to plot
 
 meco <- meco_ITS # meco_TEF1
+
+## Custom barplot
+
+df <- read_qza(dada2_ITS_file_path)$data
+df_long <- data.frame(
+  row = rep(rownames(df), times = ncol(df)),
+  column = rep(colnames(df), each = nrow(df)),
+  value = as.vector(df)
+)
+
+tax <- read_qza(taxonomy_ITS_file_path)$data %>% parse_taxonomy()
+
+tax$row <- rownames(tax)
+rownames(tax) <- NULL
+
+df_long %<>%
+  left_join(tax %>% select(row, Genus), by = "row")
+
+
+metadata <- read.csv(metadata_ITS_file_path, sep = "\t", header = TRUE)
+metadata$column <- metadata$ID
+metadata$ID <- NULL
+
+df_long %<>%
+  left_join(metadata %>% select(column, Cereal), by = "column")
+
+df_long %<>%
+  group_by(Genus) %>%
+  mutate(total_abundance = sum(value, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(Genus = reorder(Genus, -total_abundance))
+
+top <- c(levels(df_long$Genus)[!grepl("Incertae_sedis", levels(df_long$Genus))][1:15], NA)
+
+legend_labels <- sapply(top, function(label) {
+  if (is.na(label)) {
+    "Unassigned"
+  } else {
+    bquote(italic(.(label)))
+  }
+})
+
+df_long %<>% mutate(Cereal = str_replace(Cereal, "Triticum", "Triticum sp."),
+                    Cereal = str_replace(Cereal, "AvenaSativa", "Avena sativa"),
+                    Cereal = str_replace(Cereal, "HordeumVulgare", "Hordeum vulgare"))
+
+custom_barplot <- ggplot(df_long, aes(fill=Genus, y=value, x=column)) + 
+  geom_bar(position="fill", stat="identity") +
+  scale_fill_manual(
+    values = setNames(c(barplot_ITS_colors, "grey"), top),
+    breaks = top,
+    labels = legend_labels
+  ) +
+  labs(x = "", y = "Relative abundance (%)") +
+  theme(text = element_text(size = 15),
+        legend.title = element_text(size = 15),
+        panel.background = element_blank(), 
+        panel.border = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_text(size = 15),
+        axis.text.y = element_text(size = 14, margin = margin(r =-2)),
+        axis.ticks.y = element_blank(), 
+        strip.text = element_text(
+          size = 15,                       
+          face = "italic",                   
+          color = "black",                 
+          hjust = 0.5,                     
+          vjust = 0.5                      
+        ),
+        strip.background = element_rect(
+          fill = NA,
+          color = NA
+        )) + 
+  scale_y_continuous(expand = c(0, 0),
+                     labels = function(x) x * 100) +
+  scale_x_discrete(expand = c(0, 0.7)) +
+  facet_grid(~Cereal, scale = "free_x", space = "free_x")
+
+pdf(file.path(outdir, "custom_barplot.pdf"),
+    width = 9)
+
+custom_barplot
+
+dev.off()
+
 
 ## Relabel UNITE prefixes for cleaner plotting
 
