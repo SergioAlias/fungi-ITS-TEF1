@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-19                                       ║
-# ║ Last Modified  : 2025-10-15                                       ║
+# ║ Last Modified  : 2025-10-17                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -13,6 +13,7 @@
 
 library(magrittr, include.only = "%<>%")
 library(dplyr)
+library(tidyr)
 library(stringr)
 library(file2meco)
 library(microeco)
@@ -22,6 +23,8 @@ library(ggnested)
 library(ggh4x)
 library(reshape2)
 library(qiime2R)
+library(patchwork)
+
 
 ## Colors and shapes
 
@@ -104,18 +107,38 @@ df_long %<>%
   left_join(metadata %>% select(column, Cereal), by = "column")
 
 df_long %<>%
+  mutate(Genus = replace_na(Genus, "Unassigned"))
+
+top_14_genera <- df_long %>%
+  filter(Genus != "Unassigned" & !grepl("Incertae_sedis", Genus)) %>%
   group_by(Genus) %>%
-  mutate(total_abundance = sum(value, na.rm = TRUE)) %>%
-  ungroup() %>%
-  mutate(Genus = reorder(Genus, -total_abundance))
+  summarise(total_abundance = sum(value, na.rm = TRUE)) %>%
+  arrange(desc(total_abundance)) %>%
+  slice_head(n = 14) %>%
+  pull(Genus)
 
-top <- c(levels(df_long$Genus)[!grepl("Incertae_sedis", levels(df_long$Genus))][1:15], NA)
+df_long %<>%
+  mutate(
+    Genus_plot = case_when(
+      Genus %in% top_14_genera ~ Genus,
+      Genus == "Unassigned" ~ "Unassigned",
+      TRUE ~ "Other"
+    )
+  )
 
-legend_labels <- sapply(top, function(label) {
-  if (is.na(label)) {
-    "Unassigned"
+plot_levels <- c(top_14_genera, "Other", "Unassigned")
+df_long$Genus_plot <- factor(df_long$Genus_plot, levels = plot_levels)
+
+plot_colors <- setNames(
+  c(barplot_ITS_colors[1:15], "grey80"),
+  plot_levels
+)
+
+legend_labels <- sapply(plot_levels, function(label) {
+  if (label %in% c("Unassigned", "Other")) {
+    return(label) # Sin cursiva
   } else {
-    bquote(italic(.(label)))
+    return(bquote(italic(.(label))))
   }
 })
 
@@ -123,38 +146,41 @@ df_long %<>% mutate(Cereal = str_replace(Cereal, "Triticum", "Triticum sp."),
                     Cereal = str_replace(Cereal, "AvenaSativa", "Avena sativa"),
                     Cereal = str_replace(Cereal, "HordeumVulgare", "Hordeum vulgare"))
 
-custom_barplot <- ggplot(df_long, aes(fill=Genus, y=value, x=column)) + 
+
+custom_barplot <- ggplot(df_long, aes(fill = Genus_plot, y = value, x = column)) +
   geom_bar(position="fill", stat="identity") +
+  coord_flip() +
   scale_fill_manual(
-    values = setNames(c(barplot_ITS_colors, "grey"), top),
-    breaks = top,
+    name = "Genus",
+    values = plot_colors,
+    breaks = plot_levels,
     labels = legend_labels
   ) +
-  labs(x = "", y = "Relative abundance (%)") +
-  theme(text = element_text(size = 15),
-        legend.title = element_text(size = 15),
-        panel.background = element_blank(), 
-        panel.border = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.y = element_text(size = 15),
-        axis.text.y = element_text(size = 14, margin = margin(r =-2)),
-        axis.ticks.y = element_blank(), 
-        strip.text = element_text(
-          size = 15,                       
-          face = "italic",                   
-          color = "black",                 
-          hjust = 0.5,                     
-          vjust = 0.5                      
-        ),
-        strip.background = element_rect(
-          fill = NA,
-          color = NA
-        )) + 
-  scale_y_continuous(expand = c(0, 0),
-                     labels = function(x) x * 100) +
+  labs(x = NULL, y = NULL) +
+  theme(
+    text = element_text(size = 15),
+    legend.title = element_text(size = 15),
+    legend.position = "bottom",
+    panel.background = element_blank(),
+    panel.border = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.title.x = element_text(size = 15),
+    axis.text.x = element_text(size = 14, margin = margin(r = -2)),
+    axis.ticks.x = element_blank(),
+    strip.text = element_text(
+      size = 15,
+      face = "italic",
+      color = "black",
+      hjust = 0.5,
+      vjust = 0.5
+    ),
+    strip.placement = "outside",
+    strip.background = element_rect(fill = NA, color = NA)
+  ) +
+  scale_y_continuous(expand = c(0, 0), labels = scales::percent) +
   scale_x_discrete(expand = c(0, 0.7)) +
-  facet_grid(~Cereal, scale = "free_x", space = "free_x")
+  facet_grid(Cereal ~ ., switch = "y", scale = "free_y")
 
 pdf(file.path(outdir, "custom_barplot.pdf"),
     width = 9)
@@ -162,6 +188,51 @@ pdf(file.path(outdir, "custom_barplot.pdf"),
 custom_barplot
 
 dev.off()
+
+## Custom toxigenic genus barplot
+
+target_genera <- c("Aspergillus", "Fusarium", "Penicillium")
+
+rel_abundance_df <- df_long %>%
+  filter(Genus %in% target_genera) %>%
+  group_by(Cereal, column, Genus) %>%
+  summarise(genus_reads = sum(value, na.rm = TRUE), .groups = 'drop') %>%
+  left_join(
+    df_long %>% group_by(column) %>% summarise(total_reads = sum(value, na.rm = TRUE)),
+    by = "column"
+  ) %>%
+  filter(total_reads > 0) %>%
+  mutate(rel_abundance = genus_reads / total_reads)
+
+custom_boxplot <- ggplot(rel_abundance_df, aes(x = rel_abundance, y = Genus, fill = Genus)) +
+  geom_boxplot(outlier.alpha = 0.5, na.rm = TRUE) +
+  scale_fill_manual(values = plot_colors, guide = "none") +
+  scale_y_discrete(limits = rev(target_genera),
+                   labels = parse(text = paste0("italic('", rev(target_genera), "')"))) +
+  scale_x_continuous(labels = scales::percent) +
+  labs(x = NULL, y = NULL) +
+  facet_grid(Cereal ~ .) +
+  theme_bw(base_size = 15) +
+  theme(
+    legend.position = "none",
+    axis.title.x = element_text(size = 14),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_blank(),
+    strip.text.y = element_blank()
+  )
+
+
+final_plot <- custom_barplot + custom_boxplot +
+  plot_layout(guides = 'collect') &
+  theme(legend.position = 'bottom')
+
+final_plot
+
+plot_zoom <- ggplot(rel_abundance_df, aes(x = Genus, y = rel_abundance, fill = Genus)) +
+  geom_boxplot(outlier.alpha = 0.5, na.rm = TRUE) +
+  coord_flip(ylim = c(0, 0.03), clip = "on") + # <-- Límite y recorte
+
+
 
 
 ## Relabel UNITE prefixes for cleaner plotting
