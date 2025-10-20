@@ -31,18 +31,18 @@ barplot_16S_colors <- c("#FF0000",  # Red
                         "#F5F5DC",  # Beige
                         "#000080",  # Navy
                         "#FF7F00")  # Bright Orange
-barplot_ITS_colors <- c("skyblue2",
-                        "palegreen2",
+barplot_ITS_colors <- c("palegreen2",
+                        "#56B4E9",
+                        "#F0E442",
+                        "#009E73",
+                        "#0072B2",
+                        "#D55E00",
                         "#6A3D9A",
+                        "#999999",
+                        "skyblue2",
+                        "#E69F00",
+                        "#CC79A7",
                         "#E31A1C",
                         "#FF7F00",
-                        "black",
                         "gold1",
-                        "dodgerblue2",
-                        "green4",
-                        "#FDBF6F",
-                        "maroon",
-                        "orchid1",
-                        "darkturquoise",
-                        "darkorange4",
-                        "brown")
+                        "black")

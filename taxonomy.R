@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-19                                       ║
-# ║ Last Modified  : 2025-10-17                                       ║
+# ║ Last Modified  : 2025-10-20                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -23,7 +23,7 @@ library(ggnested)
 library(ggh4x)
 library(reshape2)
 library(qiime2R)
-library(patchwork)
+library(ggpubr)
 
 
 ## Colors and shapes
@@ -147,9 +147,8 @@ df_long %<>% mutate(Cereal = str_replace(Cereal, "Triticum", "Triticum sp."),
                     Cereal = str_replace(Cereal, "HordeumVulgare", "Hordeum vulgare"))
 
 
-custom_barplot <- ggplot(df_long, aes(fill = Genus_plot, y = value, x = column)) +
-  geom_bar(position="fill", stat="identity") +
-  coord_flip() +
+custom_barplot <- ggplot(df_long, aes(fill = Genus_plot, x = value, y = column)) +
+  geom_bar(position = "fill", stat = "identity") +
   scale_fill_manual(
     name = "Genus",
     values = plot_colors,
@@ -160,13 +159,13 @@ custom_barplot <- ggplot(df_long, aes(fill = Genus_plot, y = value, x = column))
   theme(
     text = element_text(size = 15),
     legend.title = element_text(size = 15),
-    legend.position = "bottom",
+    legend.position = NULL,
     panel.background = element_blank(),
     panel.border = element_blank(),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
     axis.title.x = element_text(size = 15),
-    axis.text.x = element_text(size = 14, margin = margin(r = -2)),
+    axis.text.x = element_text(size = 12, color = "black", margin = margin(r = -2)),
     axis.ticks.x = element_blank(),
     strip.text = element_text(
       size = 15,
@@ -178,9 +177,10 @@ custom_barplot <- ggplot(df_long, aes(fill = Genus_plot, y = value, x = column))
     strip.placement = "outside",
     strip.background = element_rect(fill = NA, color = NA)
   ) +
-  scale_y_continuous(expand = c(0, 0), labels = scales::percent) +
-  scale_x_discrete(expand = c(0, 0.7)) +
-  facet_grid(Cereal ~ ., switch = "y", scale = "free_y")
+  scale_x_continuous(labels = scales::percent, expand = expansion(mult = c(0, 0.02))) +
+  scale_y_discrete(expand = c(0, 0.7)) +
+  facet_grid(Cereal ~ ., switch = "y", scale = "free_y") +
+  guides(fill = guide_legend(nrow = 2, ncol = 8))
 
 pdf(file.path(outdir, "custom_barplot.pdf"),
     width = 9)
@@ -204,34 +204,48 @@ rel_abundance_df <- df_long %>%
   filter(total_reads > 0) %>%
   mutate(rel_abundance = genus_reads / total_reads)
 
-custom_boxplot <- ggplot(rel_abundance_df, aes(x = rel_abundance, y = Genus, fill = Genus)) +
-  geom_boxplot(outlier.alpha = 0.5, na.rm = TRUE) +
-  scale_fill_manual(values = plot_colors, guide = "none") +
+custom_boxplot <- ggplot(rel_abundance_df, aes(x = rel_abundance, y = Genus, fill = Genus, color = Genus)) + # <-- Añadir color aquí
+  geom_boxplot(outlier.alpha = 0.5, na.rm = TRUE, alpha = 0.2) +
+  scale_fill_manual(values = c("Aspergillus" = "black", plot_colors), guide = "none") +
+  scale_color_manual(values = c("Aspergillus" = "black", plot_colors), guide = "none") +
   scale_y_discrete(limits = rev(target_genera),
-                   labels = parse(text = paste0("italic('", rev(target_genera), "')"))) +
+                   labels = parse(text = paste0("italic('", rev(target_genera), "')")),
+                   position = "right") +
   scale_x_continuous(labels = scales::percent) +
   labs(x = NULL, y = NULL) +
   facet_grid(Cereal ~ .) +
-  theme_bw(base_size = 15) +
+  theme_bw(base_size = 16) +
   theme(
     legend.position = "none",
     axis.title.x = element_text(size = 14),
     panel.grid.minor = element_blank(),
     panel.grid.major.y = element_blank(),
-    strip.text.y = element_blank()
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.line.x = element_line(color = "black"),
+    axis.ticks.y = element_blank(),
+    strip.text.y = element_blank(),
+    axis.text.x = element_text(size = 12, color = "black"),
+    panel.spacing = unit(1, "lines")
   )
 
 
-final_plot <- custom_barplot + custom_boxplot +
-  plot_layout(guides = 'collect') &
-  theme(legend.position = 'bottom')
+final_plot <- ggarrange(custom_barplot, custom_boxplot,
+                        common.legend = TRUE,
+                        legend = "top",
+                        widths = c(6, 2))
+
+final_plot <- annotate_figure(final_plot,
+                              bottom = text_grob("Relative abundance", 
+                                                 color = "black", 
+                                                 size = 16))
+pdf(file.path(outdir, "custom_combined.pdf"),
+    width = 16,
+    height = 10)
 
 final_plot
 
-plot_zoom <- ggplot(rel_abundance_df, aes(x = Genus, y = rel_abundance, fill = Genus)) +
-  geom_boxplot(outlier.alpha = 0.5, na.rm = TRUE) +
-  coord_flip(ylim = c(0, 0.03), clip = "on") + # <-- Límite y recorte
-
+dev.off()
 
 
 
