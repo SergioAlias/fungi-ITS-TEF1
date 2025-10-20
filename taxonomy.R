@@ -247,7 +247,15 @@ final_plot
 
 dev.off()
 
+png(file.path(outdir, "custom_combined.png"),
+    width = 14,
+    height = 10,
+    units = "in",
+    res = 300)
 
+final_plot
+
+dev.off()
 
 ## Relabel UNITE prefixes for cleaner plotting
 
