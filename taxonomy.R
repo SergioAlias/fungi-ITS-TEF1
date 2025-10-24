@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-19                                       ║
-# ║ Last Modified  : 2025-10-22                                       ║
+# ║ Last Modified  : 2025-10-24                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -15,8 +15,6 @@ library(magrittr, include.only = "%<>%")
 library(dplyr)
 library(tidyr)
 library(stringr)
-library(file2meco)
-library(microeco)
 library(ggplot2)
 library(ggstats)
 library(ggnested)
@@ -69,18 +67,6 @@ taxonomy_ITS_file_path <- file.path(project_dir_ITS,
                                 "qiime2/taxonomy/taxonomy.qza")
 taxonomy_TEF1_file_path <- file.path(project_dir_TEF1,
                                     "qiime2/taxonomy/taxonomy.qza")
-
-meco_ITS <- qiime2meco(dada2_ITS_file_path,
-                       sample_table = metadata_ITS_file_path,
-                       taxonomy_table = taxonomy_ITS_file_path)
-
-meco_TEF1 <- qiime2meco(dada2_TEF1_file_path,
-                        sample_table = metadata_TEF1_file_path,
-                        taxonomy_table = taxonomy_TEF1_file_path)
-
-## Change amplicon to plot
-
-meco <- meco_ITS # meco_TEF1
 
 ## Custom barplot
 
@@ -257,63 +243,6 @@ final_plot
 
 dev.off()
 
-## Relabel UNITE prefixes for cleaner plotting
-
-meco$tax_table$Phylum <- gsub("p__", "", meco$tax_table$Phylum)
-meco$tax_table$Family <- gsub("f__", "", meco$tax_table$Family)
-
-# Create trans_abund objects and plot stuff
-
-## Nested barplot (Phylum / Class)
-
-t_stacked_phylum <- trans_abund$new(dataset = meco,
-                                    taxrank = "Class",
-                                    ntaxa = 20,
-                                    delete_taxonomy_prefix = TRUE,
-                                    high_level = "Phylum",
-                                    prefix = "c__")
-
-pdf(file.path(outdir, "barplot_class.pdf"),
-    width = 9)
-
-t_stacked_phylum$plot_bar(ggnested = TRUE,
-                          high_level_add_other = TRUE,
-                          xtext_keep = FALSE,
-                          # xtext_angle = 90,
-                          # xtext_size = 6,
-                          facet = c("Cereal"),
-                          others_color = "grey90") + 
-  theme(ggh4x.facet.nestline = element_line(colour = "grey95"))
-
-dev.off()
-
-## Nested barplot (Family / Genus)
-
-t_stacked_family <- trans_abund$new(dataset = meco,
-                                    taxrank = "Genus",
-                                    ntaxa = 15,
-                                    delete_taxonomy_prefix = TRUE,
-                                    high_level = "Family",
-                                    prefix = "g__")
-
-pdf(file.path(outdir, paste0(color_palette, "_barplot_genus.pdf")),
-    width = 14,
-    height = 5.5)
-
-t_stacked_family$plot_bar(ggnested = TRUE,
-                          high_level_add_other = TRUE,
-                          xtext_keep = FALSE,
-                          color_values = get(paste0("barplot_",
-                                                    color_palette,
-                                                    "_colors")),
-                          # xtext_angle = 90,
-                          # xtext_size = 6,
-                          facet = c("Location")) + 
-  theme(ggh4x.facet.nestline = element_line(colour = "grey95"))
-
-dev.off()
-
-
 ## Bubble plot
 
 tef1_wide <- read_qza("/home/sergio/projects/fungi-ITS-TEF1/local/TEF1_filtered_table.qza")$data
@@ -449,16 +378,14 @@ comb_bubplot <- ggplot(comb_long, aes(x = Amplicon, y = variable)) +
         axis.text.y = element_text(face = "italic"),
         strip.placement = "outside",
         strip.text = element_text(
-          size = 11,                       
-          face = "bold",                   
+          size = 11,                   
           color = "black",                 
           hjust = 0.5,                     
           vjust = 0.5                      
         ),
         strip.text.y.left = element_text(
           angle = 0,
-          hjust = 1,
-          face = "bold"),
+          hjust = 1),
         strip.background = element_rect(
           fill = NA,
           color = NA
@@ -468,6 +395,16 @@ comb_bubplot <- ggplot(comb_long, aes(x = Amplicon, y = variable)) +
 pdf(file.path(outdir, "bubble_plot.pdf"),
     width = 9,
     height = 12)
+
+comb_bubplot
+
+dev.off()
+
+png(file.path(outdir, "bubble_plot.png"),
+    width = 9,
+    height = 12,
+    units = "in",
+    res = 300)
 
 comb_bubplot
 
