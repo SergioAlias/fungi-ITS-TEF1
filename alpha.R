@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-23                                       ║
-# ║ Last Modified  : 2025-09-23                                       ║
+# ║ Last Modified  : 2025-10-24                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -17,7 +17,7 @@ library(qiime2R)
 library(ggpubr)
 library(dplyr)
 library(patchwork)
-
+library(rstatix)
 
 ## Import QIIME 2 files
 
@@ -66,9 +66,9 @@ metadata %<>% left_join(chao1)
 
 metadata %<>% mutate(
   Cereal = case_when(
-    Cereal == "AvenaSativa" ~ "Avena sativa",
-    Cereal == "HordeumVulgare" ~ "Hordeum vulgare",
-    TRUE ~ "Triticum sp."
+    Cereal == "AvenaSativa" ~ "Oat",
+    Cereal == "HordeumVulgare" ~ "Barley",
+    TRUE ~ "Wheat"
   )
 )
 
@@ -76,51 +76,56 @@ metadata %<>% mutate(
 
 source("/home/sergio/projects/fungi-ITS-TEF1/colors.R")
 
+## Functions
 
-## Comparisons
-
-comparisons_cereal <- combn(unique(metadata$Cereal), 2, simplify = FALSE)
-comparisons_location <- combn(unique(metadata$Location), 2, simplify = FALSE)
-
-
-## Alpha boxplots
-
-if (amplicon == "ITS"){
-  shannon_pos_stat <- 3.6
-  shannon_pos_stat_paired <- c(3.1, 3.35, 3.2)
-  simpson_pos_stat <- 0.92
-  simpson_pos_stat_paired <- c(0.78, 0.85, 0.81)
-  chao1_pos_stat <- 72
-  chao1_pos_stat_paired <- c(61, 66.6, 63.1)
-}
-if (amplicon == "TEF1"){
-  shannon_pos_stat <- 11.2
-  shannon_pos_stat_paired <- c(10.55, 10.7, 10.625)
-  simpson_pos_stat <- 0.99885
-  simpson_pos_stat_paired <- c(0.99852, 0.99866, 0.99859)
-  chao1_pos_stat <- 5500
-  chao1_pos_stat_paired <- c(3100, 3500, 3300)
+plot_alpha <- function(alpha_metric,
+                       ylab,
+                       letters_df) {
+  
+  p <- metadata %>%
+    ggboxplot(
+      "Cereal", alpha_metric,
+      color = "Cereal",
+      fill = "Cereal",
+      alpha = 0.1,
+      palette = cereal_colors,
+      add = "jitter",
+      add.params = list(alpha = 0.6),
+      shape = "Cereal"
+    ) +
+    scale_shape_manual(values = cereal_shapes, name = "Cereal") +
+    ylab(ylab) +
+    geom_text(
+      data = letters_df,
+      aes(x = Cereal, y = Position, label = Letter),
+      inherit.aes = FALSE,
+      color = "grey40"
+    ) +
+    coord_flip() +
+    theme(
+      axis.title.y = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.line.y = element_blank(),
+      axis.text.x = element_text(size = 9),
+      axis.title.x = element_text(size = 11)
+    )
+  return(p)
 }
 
 ### Shannon
 
+shannon_letters <- data.frame(
+  Cereal = c("Oat", "Barley", "Wheat"),
+  Letter = c("a", "ab", "b"),
+  Position = rep(0.4, 3)
+)
+
 pdf(file.path(outdir, "shannon_cereal.pdf"))
 
-shannon_c <- metadata %>%
-  ggboxplot("Cereal", "shannon_entropy",
-            color = "Cereal",
-            fill = "Cereal",
-            alpha = 0.1,
-            palette = cereal_colors,
-            add = "jitter",
-            shape = "Cereal") +
-  scale_shape_manual(values = cereal_shapes, name = "Cereal") +
-  ylab("Shannon") +
-  stat_compare_means(label.y = shannon_pos_stat) +
-  stat_compare_means(aes(label = after_stat(paste0('p = ', p.format, '\n', p.signif))),
-                     comparisons = comparisons_cereal,
-                     label.y = shannon_pos_stat_paired) +
-  theme(axis.text.x = element_text(face = "italic"))
+shannon_c <- plot_alpha(alpha_metric = "shannon_entropy",
+                        ylab = "Shannon",
+                        letters_df = shannon_letters)
 
 shannon_c
 
@@ -129,23 +134,17 @@ dev.off()
 
 ### Simpson
 
+simpson_letters <- data.frame(
+  Cereal = c("Oat", "Barley", "Wheat"),
+  Letter = c("a", "a", "b"),
+  Position = rep(0.1, 3)
+)
+
 pdf(file.path(outdir, "simpson_cereal.pdf"))
 
-simpson_c <- metadata %>%
-  ggboxplot("Cereal", "simpson",
-            color = "Cereal",
-            fill = "Cereal",
-            alpha = 0.1,
-            palette = cereal_colors,
-            add = "jitter",
-            shape = "Cereal") +
-  scale_shape_manual(values = cereal_shapes, name = "Cereal") +
-  ylab("Inverse Simpson") +
-  stat_compare_means(label.y = simpson_pos_stat) +
-  stat_compare_means(aes(label = after_stat(paste0('p = ', p.format, '\n', p.signif))),
-                     comparisons = comparisons_cereal,
-                     label.y = simpson_pos_stat_paired) +
-  theme(axis.text.x = element_text(face = "italic"))
+simpson_c <- plot_alpha(alpha_metric = "simpson",
+                        ylab = "Inverse Simpson",
+                        letters_df = simpson_letters)
 
 simpson_c
 
@@ -153,23 +152,17 @@ dev.off()
 
 ### Chao1
 
+chao1_letters <- data.frame(
+  Cereal = c("Oat", "Barley", "Wheat"),
+  Letter = c("a", "b", "ab"),
+  Position = rep(6, 3)
+)
+
 pdf(file.path(outdir, "chao1_cereal.pdf"))
 
-chao1_c <- metadata %>%
-  ggboxplot("Cereal", "chao1",
-            color = "Cereal",
-            fill = "Cereal",
-            alpha = 0.1,
-            palette = cereal_colors,
-            add = "jitter",
-            shape = "Cereal") +
-  scale_shape_manual(values = cereal_shapes, name = "Cereal") +
-  ylab("Chao1") +
-  stat_compare_means(label.y = chao1_pos_stat) +
-  stat_compare_means(aes(label = after_stat(paste0('p = ', p.format, '\n', p.signif))),
-                     comparisons = comparisons_cereal,
-                     label.y = chao1_pos_stat_paired) +
-  theme(axis.text.x = element_text(face = "italic"))
+chao1_c <- plot_alpha(alpha_metric = "chao1",
+                        ylab = "Chao1",
+                        letters_df = chao1_letters)
 
 chao1_c
 
@@ -189,3 +182,9 @@ pdf(file.path(outdir, "patched_alhpa.pdf"),
   plot_annotation(tag_levels = 'A')
 
 dev.off()
+
+### Save RDS
+
+saveRDS(chao1_c, file = file.path(outdir, "chao1.RDS"))
+saveRDS(shannon_c, file = file.path(outdir, "shannon.RDS"))
+saveRDS(simpson_c, file = file.path(outdir, "simpson.RDS"))

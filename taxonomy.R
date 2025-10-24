@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-19                                       ║
-# ║ Last Modified  : 2025-10-20                                       ║
+# ║ Last Modified  : 2025-10-22                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -24,6 +24,7 @@ library(ggh4x)
 library(reshape2)
 library(qiime2R)
 library(ggpubr)
+library(ggtext)
 
 
 ## Colors and shapes
@@ -142,9 +143,9 @@ legend_labels <- sapply(plot_levels, function(label) {
   }
 })
 
-df_long %<>% mutate(Cereal = str_replace(Cereal, "Triticum", "Triticum sp."),
-                    Cereal = str_replace(Cereal, "AvenaSativa", "Avena sativa"),
-                    Cereal = str_replace(Cereal, "HordeumVulgare", "Hordeum vulgare"))
+df_long %<>% mutate(Cereal = str_replace(Cereal, "Triticum", "Wheat"),
+                    Cereal = str_replace(Cereal, "AvenaSativa", "Oat"),
+                    Cereal = str_replace(Cereal, "HordeumVulgare", "Barley"))
 
 
 custom_barplot <- ggplot(df_long, aes(fill = Genus_plot, x = value, y = column)) +
@@ -169,7 +170,6 @@ custom_barplot <- ggplot(df_long, aes(fill = Genus_plot, x = value, y = column))
     axis.ticks.x = element_blank(),
     strip.text = element_text(
       size = 15,
-      face = "italic",
       color = "black",
       hjust = 0.5,
       vjust = 0.5
@@ -421,9 +421,9 @@ comb_long  %<>%
 ))
 
 comb_long %<>% mutate(variable = str_replace(variable, "^Fusarium_", "F. "),
-                      Sample = str_replace(Sample, "Triticum", "Triticum sp."),
-                      Sample = str_replace(Sample, "AvenaSativa", "Avena sativa"),
-                      Sample = str_replace(Sample, "HordeumVulgare", "Hordeum vulgare"))
+                      Sample = str_replace(Sample, "Triticum", "Wheat"),
+                      Sample = str_replace(Sample, "AvenaSativa", "Oat"),
+                      Sample = str_replace(Sample, "HordeumVulgare", "Barley"))
 
 
 comb_bubplot <- ggplot(comb_long, aes(x = Amplicon, y = variable)) +
@@ -450,7 +450,7 @@ comb_bubplot <- ggplot(comb_long, aes(x = Amplicon, y = variable)) +
         strip.placement = "outside",
         strip.text = element_text(
           size = 11,                       
-          face = "bold.italic",                   
+          face = "bold",                   
           color = "black",                 
           hjust = 0.5,                     
           vjust = 0.5                      
