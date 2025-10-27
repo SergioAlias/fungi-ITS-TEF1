@@ -4,7 +4,7 @@
 # ║ Project        : tenebrio-16S                                     ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-10-15                                       ║
-# ║ Last Modified  : 2025-10-24                                       ║
+# ║ Last Modified  : 2025-10-27                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -360,7 +360,7 @@ rpca_biplot <- plot_pcoa_rpca(pcoa_vectors = gemelli$data$Vectors,
                               biplot = TRUE,
                               species_vectors = gemelli$data$Species,
                               taxonomy_df = taxonomy,
-                              top_n_features = 15,
+                              top_n_features = 10,
                               cleaner_plot = TRUE)
 
 
