@@ -25,3 +25,16 @@ barplot_ITS_colors <- c("palegreen2",
                         "#FF7F00",
                         "gold1",
                         "black")
+sample_map_colors <- c(
+  "#f1f1f1", # Light Gray
+  "#f7fcf5", # Lightest Green
+  "#e5f5e0",
+  "#c7e9c0",
+  "#a1d99b",
+  "#74c476",
+  "#41ab5d",
+  "#238b45",
+  "#006d2c",
+  "#00441b",
+  "#00260e"  # Darkest Green
+)
