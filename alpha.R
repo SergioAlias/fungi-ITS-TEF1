@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-23                                       ║
-# ║ Last Modified  : 2025-10-24                                       ║
+# ║ Last Modified  : 2025-10-27                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -71,6 +71,7 @@ metadata %<>% mutate(
     TRUE ~ "Wheat"
   )
 )
+metadata <- metadata[order(metadata$Cereal, decreasing = TRUE), ]
 
 ## Colors and shapes
 
@@ -99,7 +100,7 @@ plot_alpha <- function(alpha_metric,
       data = letters_df,
       aes(x = Cereal, y = Position, label = Letter),
       inherit.aes = FALSE,
-      color = "grey40"
+      color = "grey40",
     ) +
     coord_flip() +
     theme(
@@ -154,7 +155,7 @@ dev.off()
 
 chao1_letters <- data.frame(
   Cereal = c("Oat", "Barley", "Wheat"),
-  Letter = c("a", "b", "ab"),
+  Letter = c("b", "a", "ab"),
   Position = rep(6, 3)
 )
 
