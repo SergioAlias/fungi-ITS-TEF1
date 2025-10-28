@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-10-27                                       ║
-# ║ Last Modified  : 2025-10-27                                       ║
+# ║ Last Modified  : 2025-10-28                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -30,18 +30,18 @@ source("/home/sergio/projects/fungi-ITS-TEF1/colors.R")
 esp <- esp_get_prov(moveCAN = FALSE)
 esp %<>%
   mutate(n_samples = case_when(
-    iso2.prov.code == "ES-VI" ~ "1", # Álava
-    iso2.prov.code == "ES-BU" ~ "2", # Burgos
-    iso2.prov.code == "ES-CU" ~ "2", # Cuenca
-    iso2.prov.code == "ES-GU" ~ "1", # Guadalajara
-    iso2.prov.code == "ES-M" ~ "2", # Madrid
-    iso2.prov.code == "ES-SA" ~ "5", # Salamanca
-    iso2.prov.code == "ES-SG" ~ "3", # Segovia
-    iso2.prov.code == "ES-SO" ~ "2", # Soria
-    iso2.prov.code == "ES-TE" ~ "1", # Teruel
-    iso2.prov.code == "ES-VA" ~ "10", # Valladolid
-    iso2.prov.code == "ES-ZA" ~ "1", # Zamora
-    .default = "0"
+    iso2.prov.code == "ES-VI" ~ 1, # Álava
+    iso2.prov.code == "ES-BU" ~ 2, # Burgos
+    iso2.prov.code == "ES-CU" ~ 2, # Cuenca
+    iso2.prov.code == "ES-GU" ~ 1, # Guadalajara
+    iso2.prov.code == "ES-M" ~ 2, # Madrid
+    iso2.prov.code == "ES-SA" ~ 5, # Salamanca
+    iso2.prov.code == "ES-SG" ~ 3, # Segovia
+    iso2.prov.code == "ES-SO" ~ 2, # Soria
+    iso2.prov.code == "ES-TE" ~ 1, # Teruel
+    iso2.prov.code == "ES-VA" ~ 10, # Valladolid
+    iso2.prov.code == "ES-ZA" ~ 1, # Zamora
+    .default = NA
   ))
 
 locations <- data.frame(
@@ -62,53 +62,40 @@ locations <- data.frame(
 locations %<>% st_as_sf(coords = c("lng", "lat"), remove = FALSE, 
                         crs = 4326, agr = "constant")
 
-# A vector of 11 x-nudges
-nudge_x_values <- c(
-  0.1,  # Alava
-  0,    # Burgos
-  0,    # Cuenca
-  0.2,  # Guadalajara (push right)
-  0,    # Madrid
-  -0.2, # Salamanca (push left)
-  0.1,  # Segovia (push right)
-  0,    # Soria
-  0,    # Teruel
-  0,    # Valladolid
-  -0.2  # Zamora (push left)
-)
+nudge_x_values <- c(1,    # Alava
+                    -0.8, # Burgos
+                    0.5,  # Cuenca
+                    3,    # Guadalajara
+                    -1,   # Madrid
+                    -3.5, # Salamanca
+                    -3,   # Segovia
+                    2,    # Soria
+                    1.8,  # Teruel
+                    -2.5, # Valladolid
+                    -3)    # Zamora
 
-# A vector of 11 y-nudges
-nudge_y_values <- c(
-  0.1,  # Alava (push up)
-  -0.1, # Burgos (push down)
-  -0.1, # Cuenca (push down)
-  0,    # Guadalajara
-  -0.2, # Madrid (push down)
-  0,    # Salamanca
-  0.2,  # Segovia (push up)
-  0,    # Soria
-  0,    # Teruel
-  0.1,  # Valladolid (push up)
-  0     # Zamora
-)
+nudge_y_values <- c(1,    # Alava
+                    1.4,  # Burgos
+                    -1.2, # Cuenca
+                    1.1,  # Guadalajara
+                    -1.5, # Madrid
+                    -0.2, # Salamanca
+                    -1.5, # Segovia
+                    1,    # Soria
+                    0,    # Teruel
+                    1.5,  # Valladolid
+                    0.8)  # Zamora
 
 ## Plot map
 
-pdf(file.path(outdir, "sample_map.pdf"),
-    width = 9)
-
-### PNG version
-
-# png(file.path(outdir, "sample_map.png"),
-#     width = 9,
-#     height = 7,
-#     units = "in",
-#     res = 300)
-
-ggplot(esp) +
+map <- ggplot(esp) +
   geom_sf(aes(fill = n_samples)) +
-  scale_fill_discrete(type = sample_map_colors,
-                      guide = "none") +
+  scale_fill_gradient(
+    low = "#ade0d6",
+    high = "#046647",
+    na.value = "grey95",
+    guide = NULL
+  ) +
   geom_sf(data = locations) +
   geom_label_repel(data = locations,
                    aes(x = lng, y = lat,
@@ -116,16 +103,31 @@ ggplot(esp) +
                    parse = FALSE,
                    hjust = 0,
                    max.overlaps = Inf,
-                   force = 2,
-                   box.padding = unit(0.5, "lines"),
-                   min.segment.length = unit(0, "lines")) +
-                   # nudge_x = nudge_x_values,
-                   # nudge_y = nudge_y_values) +
+                   nudge_x = nudge_x_values,
+                   nudge_y = nudge_y_values) +
   xlab(NULL) + ylab(NULL) +
   theme(panel.grid.major = element_line(color = gray(0.5), linetype = "dashed", 
-                                        size = 0.2),
+                                        linewidth = 0.2),
         panel.background = element_rect(fill = "aliceblue")) +
   coord_sf(xlim = c(-11, 6), ylim = c(35.5, 44.5), expand = TRUE) # + theme_void()
 
+
+## Export
+
+pdf(file.path(outdir, "sample_map.pdf"),
+    width = 12,
+    height = 10)
+
+map
+
 dev.off()
 
+png(file.path(outdir, "sample_map.png"),
+    width = 12,
+    height = 10,
+    units = "in",
+    res = 300)
+
+map
+
+dev.off()
