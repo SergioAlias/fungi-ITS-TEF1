@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-19                                       ║
-# ║ Last Modified  : 2025-10-24                                       ║
+# ║ Last Modified  : 2025-10-28                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -17,8 +17,6 @@ library(tidyr)
 library(stringr)
 library(ggplot2)
 library(ggstats)
-library(ggnested)
-library(ggh4x)
 library(reshape2)
 library(qiime2R)
 library(ggpubr)
