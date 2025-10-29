@@ -25,3 +25,25 @@ barplot_ITS_colors <- c("palegreen2",
                         "#FF7F00",
                         "gold1",
                         "black")
+barplot_order_ITS_colors <- c(
+  Amphisphaeriales = "#CAB2D6",
+  Cladosporiales = "#6A3D9A",
+  Cystofilobasidiales = "#A6CEE3",
+  Dothideales = "#1F78B4",
+  Eurotiales = "#B2DF8A",
+  Filobasidiales = "#FFFF99",
+  Helotiales = "#33A02C",
+  Hypocreales = "#FB9A99",
+  Pleosporales = "#E31A1C",
+  Sporidiobolales = "#B15928",
+  Tremellales = "#FDBF6F",
+  Ustilaginales = "#FF7F00"
+)
+da_legend_colors <- c("DA (Barley)" = "#FC8D62",
+                      "DA (Oat)" = "#8DA0CB",
+                      "DA (Wheat)" = "#66C2A5",
+                      NS = "grey45")
+da_legend_shapes <- c("DA (Barley)" = 16,
+                      "DA (Oat)" = 15,
+                      "DA (Wheat)" = 17,
+                      NS = 4)
