@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-10-29                                       ║
-# ║ Last Modified  : 2025-10-29                                       ║
+# ║ Last Modified  : 2025-10-30                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -174,6 +174,7 @@ barplotFromAncombc <- function(qza_path,
           label = down_legend,
           color = down_color,
           size = 4,
+          fontface = "bold",
           hjust = 0.5,
           vjust = -0.5
         )
@@ -188,6 +189,7 @@ barplotFromAncombc <- function(qza_path,
           label = up_legend,
           color = up_color,
           size = 4,
+          fontface = "bold",
           hjust = 0.5,
           vjust = 1.5
         )
@@ -450,8 +452,8 @@ v_vol <- (v_bar_vs_whe + theme(legend.position="none") +
                       axes = "collect",
                       widths = c(9, 1, 9, 1, 9))
 
-p_v <- v_legend / v_vol +
-  plot_layout(heights = c(1, 15))
+p_v <- v_vol / v_legend +
+  plot_layout(heights = c(15, 1))
 
 b_bars <- (b_bar_vs_whe + theme(legend.position="none") +
              plot_spacer() +
@@ -462,13 +464,13 @@ b_bars <- (b_bar_vs_whe + theme(legend.position="none") +
                     axes = "collect",
                     widths = c(9, 1, 9, 1, 9))
 
-p_b <- b_bars / b_legend / plot_spacer() + 
-  plot_layout(heights = c(7, 1, 0.5))
+p_b <- plot_spacer() / b_legend / b_bars + 
+  plot_layout(heights = c(0.2, 1, 7))
 
-v_b <- ggarrange(p_v, p_b, 
+v_b <- ggarrange(p_b, p_v, 
                  ncol = 1, 
                  nrow = 2, 
-                 heights = c(4, 3))
+                 heights = c(3, 4))
 
 ## Save plots
 
