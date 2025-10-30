@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-19                                       ║
-# ║ Last Modified  : 2025-10-28                                       ║
+# ║ Last Modified  : 2025-10-30                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -140,7 +140,7 @@ custom_barplot <- ggplot(df_long, aes(fill = Genus_plot, x = value, y = column))
     breaks = plot_levels,
     labels = legend_labels
   ) +
-  labs(x = NULL, y = NULL) +
+  labs(x = "Relative abundance", y = NULL) +
   theme(
     text = element_text(size = 15),
     legend.title = element_text(size = 15),
@@ -173,9 +173,9 @@ custom_barplot
 
 dev.off()
 
-## Custom toxigenic genus barplot
+## Custom toxigenic genus boxplot
 
-target_genera <- c("Aspergillus", "Fusarium", "Penicillium")
+target_genera <- c("Aspergillus", "Fusarium", "Penicillium", "Alternaria")
 
 rel_abundance_df <- df_long %>%
   filter(Genus %in% target_genera) %>%
@@ -214,15 +214,61 @@ custom_boxplot <- ggplot(rel_abundance_df, aes(x = rel_abundance, y = Genus, fil
   )
 
 
-final_plot <- ggarrange(custom_barplot, custom_boxplot,
+## Custom clr boxplot
+
+target_genera <- c("Aspergillus", "Fusarium", "Penicillium", "Alternaria")
+
+# 1. Calculate per-genus counts and add pseudocount
+genus_counts_df <- df_long %>%
+  group_by(Cereal, column, Genus) %>%
+  summarise(genus_reads = sum(value, na.rm = TRUE), .groups = 'drop') %>%
+  mutate(genus_reads_pseudo = genus_reads + 1) # Add pseudocount of 1
+
+# 2. Calculate log-geometric mean per sample (using all genera)
+log_gmean_df <- genus_counts_df %>%
+  group_by(Cereal, column) %>%
+  summarise(log_gmean = mean(log(genus_reads_pseudo)), .groups = 'drop')
+
+# 3. Calculate CLR and filter for target genera
+clr_df <- genus_counts_df %>%
+  left_join(log_gmean_df, by = c("Cereal", "column")) %>%
+  mutate(clr_value = log(genus_reads_pseudo) - log_gmean) %>%
+  filter(Genus %in% target_genera)
+
+# 4. Create the boxplot using CLR values
+custom_boxplot_clr <- ggplot(clr_df, aes(x = clr_value, y = Genus, fill = Genus, color = Genus)) +
+  geom_boxplot(outlier.alpha = 0.5, na.rm = TRUE, alpha = 0.2) +
+  scale_fill_manual(values = c("Aspergillus" = "black", plot_colors), guide = "none") +
+  scale_color_manual(values = c("Aspergillus" = "black", plot_colors), guide = "none") +
+  scale_y_discrete(limits = rev(target_genera),
+                   labels = parse(text = paste0("italic('", rev(target_genera), "')")),
+                   position = "right") +
+  labs(x = "CLR transformed abundance", y = NULL) +
+  facet_grid(Cereal ~ .) +
+  theme_bw(base_size = 16) +
+  theme(
+    legend.position = "none",
+    axis.title.x = element_text(size = 14),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.border = element_blank(),
+    axis.line.x = element_line(color = "black"),
+    axis.ticks.y = element_blank(),
+    strip.text.y = element_blank(),
+    axis.text.x = element_text(size = 12, color = "black"),
+    panel.spacing = unit(1, "lines")
+  )
+
+custom_boxplot_clr
+
+## compose plots
+
+final_plot <- ggarrange(custom_barplot, custom_boxplot_clr,
                         common.legend = TRUE,
                         legend = "top",
                         widths = c(6, 2))
 
-final_plot <- annotate_figure(final_plot,
-                              bottom = text_grob("Relative abundance", 
-                                                 color = "black", 
-                                                 size = 16))
 pdf(file.path(outdir, "custom_combined.pdf"),
     width = 16,
     height = 10)
