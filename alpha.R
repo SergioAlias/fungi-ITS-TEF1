@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-23                                       ║
-# ║ Last Modified  : 2025-10-27                                       ║
+# ║ Last Modified  : 2025-11-05                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -118,7 +118,7 @@ plot_alpha <- function(alpha_metric,
 
 shannon_letters <- data.frame(
   Cereal = c("Oat", "Barley", "Wheat"),
-  Letter = c("a", "ab", "b"),
+  Letter = c("a", "a", "b"),
   Position = rep(0.4, 3)
 )
 
@@ -155,7 +155,7 @@ dev.off()
 
 chao1_letters <- data.frame(
   Cereal = c("Oat", "Barley", "Wheat"),
-  Letter = c("b", "a", "ab"),
+  Letter = c("a", "a", "a"),
   Position = rep(6, 3)
 )
 
