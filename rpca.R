@@ -4,7 +4,7 @@
 # ║ Project        : tenebrio-16S                                     ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-10-15                                       ║
-# ║ Last Modified  : 2025-10-27                                       ║
+# ║ Last Modified  : 2025-11-11                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -373,3 +373,55 @@ rpca_regular + rpca_biplot +
 
 saveRDS(rpca_regular, file = file.path(outdir, "rPCA_regular.RDS"))
 saveRDS(rpca_biplot, file = file.path(outdir, "rPCA_biplot.RDS"))
+
+
+### rPCA by location
+
+rpca_regular_location <- plot_pcoa_rpca(pcoa_vectors = gemelli$data$Vectors,
+                                        prefix = "PC",
+                                        pc_x = "PC1",
+                                        pc_y = "PC2",
+                                        variance_x = gemelli_pco1,
+                                        variance_y = gemelli_pco2,
+                                        grouping_var = "Location",
+                                        color_values = location_colors,
+                                        shape_values = location_shapes)
+
+rpca_biplot_location <- plot_pcoa_rpca(pcoa_vectors = gemelli$data$Vectors,
+                                       prefix = "PC",
+                                       pc_x = "PC1",
+                                       pc_y = "PC2",
+                                       variance_x = gemelli_pco1,
+                                       variance_y = gemelli_pco2,
+                                       grouping_var = "Location",
+                                       color_values = location_colors,
+                                       shape_values = location_shapes,
+                                       biplot = TRUE,
+                                       species_vectors = gemelli$data$Species,
+                                       taxonomy_df = taxonomy,
+                                       top_n_features = 10,
+                                       cleaner_plot = TRUE)
+
+rpca_location <- rpca_regular_location / rpca_biplot_location +
+  plot_layout(guides = "collect",
+              axes = "collect")
+
+## Save location plots
+
+pdf(file.path(outdir, "rpca_location.pdf"),
+    width = 7,
+    height = 6)
+
+rpca_location
+
+dev.off()
+
+png(file.path(outdir, "rpca_location.png"),
+    width = 7,
+    height = 6,
+    units = "in",
+    res = 300)
+
+rpca_location
+
+dev.off()
