@@ -465,7 +465,7 @@ b_bars <- (b_bar_vs_whe + theme(legend.position="none") +
                     widths = c(9, 1, 9, 1, 9))
 
 p_b <- plot_spacer() / b_legend / b_bars + 
-  plot_layout(heights = c(0.2, 1, 7))
+  plot_layout(heights = c(0.2, 1.5, 7))
 
 v_b <- ggarrange(p_b, p_v, 
                  ncol = 1, 
