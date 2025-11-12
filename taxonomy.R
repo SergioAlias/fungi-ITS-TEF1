@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-19                                       ║
-# ║ Last Modified  : 2025-10-30                                       ║
+# ║ Last Modified  : 2025-11-12                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -21,6 +21,7 @@ library(reshape2)
 library(qiime2R)
 library(ggpubr)
 library(ggtext)
+library(rstatix)
 
 
 ## Colors and shapes
@@ -131,7 +132,6 @@ df_long %<>% mutate(Cereal = str_replace(Cereal, "Triticum", "Wheat"),
                     Cereal = str_replace(Cereal, "AvenaSativa", "Oat"),
                     Cereal = str_replace(Cereal, "HordeumVulgare", "Barley"))
 
-
 custom_barplot <- ggplot(df_long, aes(fill = Genus_plot, x = value, y = column)) +
   geom_bar(position = "fill", stat = "identity") +
   scale_fill_manual(
@@ -235,11 +235,65 @@ clr_df <- genus_counts_df %>%
   mutate(clr_value = log(genus_reads_pseudo) - log_gmean) %>%
   filter(Genus %in% target_genera)
 
+# 3.5 Significance letters
+
+all_kw <- clr_df %>%
+  group_by(Cereal) %>%
+  kruskal_test(clr_value ~ Genus)
+
+pairwise_kw <- clr_df %>%
+  group_by(Cereal) %>%
+  wilcox_test(clr_value ~ Genus, p.adjust.method = "BH")
+
+g_all_kw <- clr_df %>%
+  group_by(Genus) %>%
+  kruskal_test(clr_value ~ Cereal)
+
+g_pairwise_kw <- clr_df %>%
+  group_by(Genus) %>%
+  wilcox_test(clr_value ~ Cereal, p.adjust.method = "BH")
+
+clr_letters <- data.frame(
+  Cereal = c(rep("Barley", 4), rep("Oat", 4), rep("Wheat", 4)),
+  Genus = rep(c("Aspergillus", "Fusarium", "Penicillium", "Alternaria"), 3),
+  Letter = c("a", "b", "c", "d",  # Barley
+             "a", "b", "b", "c",  # Oat
+             "a", "b", "b", "c"), # Wheat
+  Position = rep(-1.8, 12)
+)
+
+g_letters <- data.frame(
+  Cereal = c(rep("Barley", 4), rep("Oat", 4), rep("Wheat", 4)),
+  Genus = rep(c("Aspergillus", "Fusarium", "Penicillium", "Alternaria"), 3),
+  Letter_g = c("a", "a", "a", "a",  # Barley
+               "a", "a", "b", "a",  # Oat
+               "a", "a", "b", "b"), # Wheat
+  Position_g = rep(9.4, 12) 
+)
+
 # 4. Create the boxplot using CLR values
+
+genus_colors <- c("Aspergillus" = "black", plot_colors)
+
+y_axis_label_colors <- genus_colors[rev(target_genera)]
+
 custom_boxplot_clr <- ggplot(clr_df, aes(x = clr_value, y = Genus, fill = Genus, color = Genus)) +
   geom_boxplot(outlier.alpha = 0.5, na.rm = TRUE, alpha = 0.2) +
-  scale_fill_manual(values = c("Aspergillus" = "black", plot_colors), guide = "none") +
-  scale_color_manual(values = c("Aspergillus" = "black", plot_colors), guide = "none") +
+  geom_text(
+    data = clr_letters,
+    aes(x = Position, y = Genus, label = Letter),
+    inherit.aes = FALSE,
+    color = cereal_colors[clr_letters$Cereal],
+    hjust = 0.5
+  ) +
+  geom_text(
+    data = g_letters,
+    aes(x = Position_g, y = Genus, label = Letter_g), 
+    inherit.aes = TRUE,                                    
+    hjust = 0.5                                  
+  ) +
+  scale_fill_manual(values = genus_colors, guide = "none") +
+  scale_color_manual(values = genus_colors, guide = "none") +
   scale_y_discrete(limits = rev(target_genera),
                    labels = parse(text = paste0("italic('", rev(target_genera), "')")),
                    position = "right") +
@@ -257,6 +311,7 @@ custom_boxplot_clr <- ggplot(clr_df, aes(x = clr_value, y = Genus, fill = Genus,
     axis.ticks.y = element_blank(),
     strip.text.y = element_blank(),
     axis.text.x = element_text(size = 12, color = "black"),
+    axis.text.y.right = element_text(color = y_axis_label_colors),
     panel.spacing = unit(1, "lines")
   )
 
@@ -267,7 +322,7 @@ custom_boxplot_clr
 final_plot <- ggarrange(custom_barplot, custom_boxplot_clr,
                         common.legend = TRUE,
                         legend = "top",
-                        widths = c(6, 2))
+                        widths = c(11.5, 4.5))
 
 pdf(file.path(outdir, "custom_combined.pdf"),
     width = 16,
