@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-19                                       ║
-# ║ Last Modified  : 2025-11-12                                       ║
+# ║ Last Modified  : 2025-11-21                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -286,12 +286,12 @@ custom_boxplot_clr <- ggplot(clr_df, aes(x = clr_value, y = Genus, fill = Genus,
     color = cereal_colors[clr_letters$Cereal],
     hjust = 0.5
   ) +
-  geom_text(
-    data = g_letters,
-    aes(x = Position_g, y = Genus, label = Letter_g), 
-    inherit.aes = TRUE,                                    
-    hjust = 0.5                                  
-  ) +
+  # geom_text(
+    # data = g_letters,
+    # aes(x = Position_g, y = Genus, label = Letter_g), 
+    # inherit.aes = TRUE,                                    
+    # hjust = 0.5                                  
+  # ) +
   scale_fill_manual(values = genus_colors, guide = "none") +
   scale_color_manual(values = genus_colors, guide = "none") +
   scale_y_discrete(limits = rev(target_genera),
