@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-19                                       ║
-# ║ Last Modified  : 2025-11-21                                       ║
+# ║ Last Modified  : 2025-12-02                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -22,7 +22,7 @@ library(qiime2R)
 library(ggpubr)
 library(ggtext)
 library(rstatix)
-
+library(patchwork)
 
 ## Colors and shapes
 
@@ -33,7 +33,6 @@ source("/home/sergio/projects/fungi-ITS-TEF1/colors.R")
 
 project_ITS <- "grano_ITS"
 project_TEF1 <- "grano_TEF1"
-color_palette <- "ITS" # 16S or ITS
 out <- "grano-ITS-TEF1"
 
 readRenviron("/home/sergio/Renvs/.RenvBrigit")
@@ -51,289 +50,166 @@ outdir <- file.path("/home/sergio/scratch",
                     out,
                     "taxonomy")
 
+dada2_paths <- list(
+  "ITS" = file.path(project_dir_ITS,
+                    "qiime2/feature_tables/filtered_table.qza"),
+  "TEF1" = file.path(project_dir_TEF1,
+                     "qiime2/feature_tables/filtered_table.qza"))
 
-dada2_ITS_file_path <- file.path(project_dir_ITS,
-                             "qiime2/feature_tables/filtered_table.qza")
-dada2_TEF1_file_path <- file.path(project_dir_TEF1,
-                                 "qiime2/feature_tables/filtered_table.qza")
-metadata_ITS_file_path <- file.path("/home/sergio/scratch",
-                                    project_ITS,
-                                    "metadata.tsv")
-metadata_TEF1_file_path <- file.path("/home/sergio/scratch",
-                                    project_TEF1,
-                                    "metadata.tsv")
-taxonomy_ITS_file_path <- file.path(project_dir_ITS,
-                                "qiime2/taxonomy/taxonomy.qza")
-taxonomy_TEF1_file_path <- file.path(project_dir_TEF1,
-                                    "qiime2/taxonomy/taxonomy.qza")
+metadata_paths <- list(
+  "ITS" = file.path("/home/sergio/scratch",
+                    project_ITS,
+                    "metadata.tsv"),
+  "TEF1" = file.path("/home/sergio/scratch",
+                     project_TEF1,
+                     "metadata.tsv"))
+
+taxonomy_paths <- list(
+  "ITS" = file.path(project_dir_ITS,
+                    "qiime2/taxonomy/taxonomy.qza"),
+  "TEF1" = file.path(project_dir_TEF1,
+                     "qiime2/taxonomy/taxonomy.qza"))
 
 ## Custom barplot
 
-df <- read_qza(dada2_ITS_file_path)$data
-df_long <- data.frame(
-  row = rep(rownames(df), times = ncol(df)),
-  column = rep(colnames(df), each = nrow(df)),
-  value = as.vector(df)
-)
-
-tax <- read_qza(taxonomy_ITS_file_path)$data %>% parse_taxonomy()
-
-tax$row <- rownames(tax)
-rownames(tax) <- NULL
-
-df_long %<>%
-  left_join(tax %>% select(row, Genus), by = "row")
-
-
-metadata <- read.csv(metadata_ITS_file_path, sep = "\t", header = TRUE)
-metadata$column <- metadata$ID
-metadata$ID <- NULL
-
-df_long %<>%
-  left_join(metadata %>% select(column, Cereal), by = "column")
-
-df_long %<>%
-  mutate(Genus = replace_na(Genus, "Unassigned"))
-
-top_14_genera <- df_long %>%
-  filter(Genus != "Unassigned" & !grepl("Incertae_sedis", Genus)) %>%
-  group_by(Genus) %>%
-  summarise(total_abundance = sum(value, na.rm = TRUE)) %>%
-  arrange(desc(total_abundance)) %>%
-  slice_head(n = 14) %>%
-  pull(Genus)
-
-df_long %<>%
-  mutate(
-    Genus_plot = case_when(
-      Genus %in% top_14_genera ~ Genus,
-      Genus == "Unassigned" ~ "Unassigned",
-      TRUE ~ "Other"
+get_barplot <- function(target_gene) {
+  
+  # Use the argument 'target_gene' to select the path
+  df <- read_qza(dada2_paths[[target_gene]])$data
+  
+  df_long <- data.frame(
+    row = rep(rownames(df), times = ncol(df)),
+    column = rep(colnames(df), each = nrow(df)),
+    value = as.vector(df)
+  )
+  
+  tax <- read_qza(taxonomy_paths[[target_gene]])$data %>% parse_taxonomy()
+  
+  tax$row <- rownames(tax)
+  rownames(tax) <- NULL
+  
+  df_long %<>%
+    left_join(tax %>% select(row, Genus), by = "row")
+  
+  metadata <- read.csv(metadata_paths[[target_gene]], sep = "\t", header = TRUE)
+  metadata$column <- metadata$ID
+  metadata$ID <- NULL
+  
+  df_long %<>%
+    left_join(metadata %>% select(column, Cereal), by = "column")
+  
+  df_long %<>%
+    mutate(Genus = replace_na(Genus, "Unassigned"))
+  
+  top_14_genera <- df_long %>%
+    filter(Genus != "Unassigned" & Genus != "Nectriaceae" & !grepl("Incertae_sedis", Genus)) %>%
+    group_by(Genus) %>%
+    summarise(total_abundance = sum(value, na.rm = TRUE)) %>%
+    arrange(desc(total_abundance)) %>%
+    slice_head(n = 14) %>%
+    pull(Genus)
+  
+  df_long %<>%
+    mutate(
+      Genus_plot = case_when(
+        Genus %in% top_14_genera ~ Genus,
+        Genus == "Unassigned" ~ "Unassigned",
+        TRUE ~ "Other"
+      )
     )
-  )
+  
+  plot_levels <- c(top_14_genera, "Other", "Unassigned")
+  df_long$Genus_plot <- factor(df_long$Genus_plot, levels = plot_levels)
+  
+  # Ensure the color palette works for the specific gene
+  # Assuming barplot_genus_colors is a named vector or list accessible globally
+  plot_colors <- barplot_genus_colors 
+  
+  legend_labels <- sapply(plot_levels, function(label) {
+    if (label %in% c("Unassigned", "Other")) {
+      return(label) 
+    } else {
+      return(bquote(italic(.(label))))
+    }
+  })
+  
+  df_long %<>% mutate(Cereal = str_replace(Cereal, "Triticum", "Wheat"),
+                      Cereal = str_replace(Cereal, "AvenaSativa", "Oat"),
+                      Cereal = str_replace(Cereal, "HordeumVulgare", "Barley"))
+  
+  # Construct the plot
+  p <- ggplot(df_long, aes(fill = Genus_plot, x = value, y = column)) +
+    geom_bar(position = "fill", stat = "identity") +
+    scale_fill_manual(
+      name = "Genus",
+      values = plot_colors,
+      breaks = plot_levels,
+      labels = legend_labels
+    ) +
+    labs(x = "Relative abundance", y = NULL) +
+    theme(
+      text = element_text(size = 15),
+      legend.title = element_text(size = 15),
+      legend.position = "top",
+      panel.background = element_blank(),
+      panel.border = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.title.x = element_text(size = 15),
+      axis.text.x = element_text(size = 12, color = "black", margin = margin(r = -2)),
+      axis.ticks.x = element_blank(),
+      strip.text = element_text(
+        size = 15,
+        color = "black",
+        hjust = 0.5,
+        vjust = 0.5
+      ),
+      strip.placement = "outside",
+      strip.background = element_rect(fill = NA, color = NA)
+    ) +
+    scale_x_continuous(labels = scales::percent, expand = expansion(mult = c(0, 0.02))) +
+    scale_y_discrete(expand = c(0, 0.7)) +
+    facet_grid(Cereal ~ ., switch = "y", scale = "free_y") +
+    guides(fill = guide_legend(nrow = 2, ncol = 8))
+  
+  return(p)
+}
 
-plot_levels <- c(top_14_genera, "Other", "Unassigned")
-df_long$Genus_plot <- factor(df_long$Genus_plot, levels = plot_levels)
+barplot_ITS  <- get_barplot("ITS")
+barplot_TEF1 <- get_barplot("TEF1")
 
-plot_colors <- setNames(
-  c(barplot_ITS_colors[1:15], "grey80"),
-  plot_levels
-)
 
-legend_labels <- sapply(plot_levels, function(label) {
-  if (label %in% c("Unassigned", "Other")) {
-    return(label) # Sin cursiva
-  } else {
-    return(bquote(italic(.(label))))
-  }
-})
+## Compose plot
 
-df_long %<>% mutate(Cereal = str_replace(Cereal, "Triticum", "Wheat"),
-                    Cereal = str_replace(Cereal, "AvenaSativa", "Oat"),
-                    Cereal = str_replace(Cereal, "HordeumVulgare", "Barley"))
-
-custom_barplot <- ggplot(df_long, aes(fill = Genus_plot, x = value, y = column)) +
-  geom_bar(position = "fill", stat = "identity") +
-  scale_fill_manual(
-    name = "Genus",
-    values = plot_colors,
-    breaks = plot_levels,
-    labels = legend_labels
-  ) +
-  labs(x = "Relative abundance", y = NULL) +
+barplot_TEF1_clean <- barplot_TEF1 + 
   theme(
-    text = element_text(size = 15),
-    legend.title = element_text(size = 15),
-    legend.position = NULL,
-    panel.background = element_blank(),
-    panel.border = element_blank(),
-    axis.text.y = element_blank(),
-    axis.ticks.y = element_blank(),
-    axis.title.x = element_text(size = 15),
-    axis.text.x = element_text(size = 12, color = "black", margin = margin(r = -2)),
-    axis.ticks.x = element_blank(),
-    strip.text = element_text(
-      size = 15,
-      color = "black",
-      hjust = 0.5,
-      vjust = 0.5
-    ),
-    strip.placement = "outside",
-    strip.background = element_rect(fill = NA, color = NA)
-  ) +
-  scale_x_continuous(labels = scales::percent, expand = expansion(mult = c(0, 0.02))) +
-  scale_y_discrete(expand = c(0, 0.7)) +
-  facet_grid(Cereal ~ ., switch = "y", scale = "free_y") +
-  guides(fill = guide_legend(nrow = 2, ncol = 8))
-
-pdf(file.path(outdir, "custom_barplot.pdf"),
-    width = 9)
-
-custom_barplot
-
-dev.off()
-
-## Custom toxigenic genus boxplot
-
-target_genera <- c("Aspergillus", "Fusarium", "Penicillium", "Alternaria")
-
-rel_abundance_df <- df_long %>%
-  filter(Genus %in% target_genera) %>%
-  group_by(Cereal, column, Genus) %>%
-  summarise(genus_reads = sum(value, na.rm = TRUE), .groups = 'drop') %>%
-  left_join(
-    df_long %>% group_by(column) %>% summarise(total_reads = sum(value, na.rm = TRUE)),
-    by = "column"
-  ) %>%
-  filter(total_reads > 0) %>%
-  mutate(rel_abundance = genus_reads / total_reads)
-
-custom_boxplot <- ggplot(rel_abundance_df, aes(x = rel_abundance, y = Genus, fill = Genus, color = Genus)) + # <-- Añadir color aquí
-  geom_boxplot(outlier.alpha = 0.5, na.rm = TRUE, alpha = 0.2) +
-  scale_fill_manual(values = c("Aspergillus" = "black", plot_colors), guide = "none") +
-  scale_color_manual(values = c("Aspergillus" = "black", plot_colors), guide = "none") +
-  scale_y_discrete(limits = rev(target_genera),
-                   labels = parse(text = paste0("italic('", rev(target_genera), "')")),
-                   position = "right") +
-  scale_x_continuous(labels = scales::percent) +
-  labs(x = NULL, y = NULL) +
-  facet_grid(Cereal ~ .) +
-  theme_bw(base_size = 16) +
-  theme(
-    legend.position = "none",
-    axis.title.x = element_text(size = 14),
-    panel.grid.minor = element_blank(),
-    panel.grid.major.y = element_blank(),
-    panel.grid.major.x = element_blank(),
-    panel.border = element_blank(),
-    axis.line.x = element_line(color = "black"),
-    axis.ticks.y = element_blank(),
     strip.text.y = element_blank(),
-    axis.text.x = element_text(size = 12, color = "black"),
-    panel.spacing = unit(1, "lines")
+    strip.text.y.left = element_blank()
   )
 
+p1 <- barplot_ITS + ggtitle("ITS2") + theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold", color = amplicon_colors[["ITS2"]]))
+p2 <- barplot_TEF1_clean + ggtitle("TEF1") + theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold", color = amplicon_colors[["TEF1"]]))
 
-## Custom clr boxplot
-
-target_genera <- c("Aspergillus", "Fusarium", "Penicillium", "Alternaria")
-
-# 1. Calculate per-genus counts and add pseudocount
-genus_counts_df <- df_long %>%
-  group_by(Cereal, column, Genus) %>%
-  summarise(genus_reads = sum(value, na.rm = TRUE), .groups = 'drop') %>%
-  mutate(genus_reads_pseudo = genus_reads + 1) # Add pseudocount of 1
-
-# 2. Calculate log-geometric mean per sample (using all genera)
-log_gmean_df <- genus_counts_df %>%
-  group_by(Cereal, column) %>%
-  summarise(log_gmean = mean(log(genus_reads_pseudo)), .groups = 'drop')
-
-# 3. Calculate CLR and filter for target genera
-clr_df <- genus_counts_df %>%
-  left_join(log_gmean_df, by = c("Cereal", "column")) %>%
-  mutate(clr_value = log(genus_reads_pseudo) - log_gmean) %>%
-  filter(Genus %in% target_genera)
-
-# 3.5 Significance letters
-
-all_kw <- clr_df %>%
-  group_by(Cereal) %>%
-  kruskal_test(clr_value ~ Genus)
-
-pairwise_kw <- clr_df %>%
-  group_by(Cereal) %>%
-  wilcox_test(clr_value ~ Genus, p.adjust.method = "BH")
-
-g_all_kw <- clr_df %>%
-  group_by(Genus) %>%
-  kruskal_test(clr_value ~ Cereal)
-
-g_pairwise_kw <- clr_df %>%
-  group_by(Genus) %>%
-  wilcox_test(clr_value ~ Cereal, p.adjust.method = "BH")
-
-clr_letters <- data.frame(
-  Cereal = c(rep("Barley", 4), rep("Oat", 4), rep("Wheat", 4)),
-  Genus = rep(c("Aspergillus", "Fusarium", "Penicillium", "Alternaria"), 3),
-  Letter = c("a", "b", "c", "d",  # Barley
-             "a", "b", "b", "c",  # Oat
-             "a", "b", "b", "c"), # Wheat
-  Position = rep(-1.8, 12)
-)
-
-g_letters <- data.frame(
-  Cereal = c(rep("Barley", 4), rep("Oat", 4), rep("Wheat", 4)),
-  Genus = rep(c("Aspergillus", "Fusarium", "Penicillium", "Alternaria"), 3),
-  Letter_g = c("a", "a", "a", "a",  # Barley
-               "a", "a", "b", "a",  # Oat
-               "a", "a", "b", "b"), # Wheat
-  Position_g = rep(9.4, 12) 
-)
-
-# 4. Create the boxplot using CLR values
-
-genus_colors <- c("Aspergillus" = "black", plot_colors)
-
-y_axis_label_colors <- genus_colors[rev(target_genera)]
-
-custom_boxplot_clr <- ggplot(clr_df, aes(x = clr_value, y = Genus, fill = Genus, color = Genus)) +
-  geom_boxplot(outlier.alpha = 0.5, na.rm = TRUE, alpha = 0.2) +
-  geom_text(
-    data = clr_letters,
-    aes(x = Position, y = Genus, label = Letter),
-    inherit.aes = FALSE,
-    color = cereal_colors[clr_letters$Cereal],
-    hjust = 0.5
-  ) +
-  # geom_text(
-    # data = g_letters,
-    # aes(x = Position_g, y = Genus, label = Letter_g), 
-    # inherit.aes = TRUE,                                    
-    # hjust = 0.5                                  
-  # ) +
-  scale_fill_manual(values = genus_colors, guide = "none") +
-  scale_color_manual(values = genus_colors, guide = "none") +
-  scale_y_discrete(limits = rev(target_genera),
-                   labels = parse(text = paste0("italic('", rev(target_genera), "')")),
-                   position = "right") +
-  labs(x = "CLR transformed abundance", y = NULL) +
-  facet_grid(Cereal ~ .) +
-  theme_bw(base_size = 16) +
+final_plot <- p1 + p2 + 
+  plot_layout(
+    guides = "keep",
+    axis_titles = "collect"
+  ) & 
   theme(
-    legend.position = "none",
-    axis.title.x = element_text(size = 14),
-    panel.grid.minor = element_blank(),
-    panel.grid.major.y = element_blank(),
-    panel.grid.major.x = element_blank(),
-    panel.border = element_blank(),
-    axis.line.x = element_line(color = "black"),
-    axis.ticks.y = element_blank(),
-    strip.text.y = element_blank(),
-    axis.text.x = element_text(size = 12, color = "black"),
-    axis.text.y.right = element_text(color = y_axis_label_colors),
-    panel.spacing = unit(1, "lines")
+    legend.position = "bottom",
+    plot.margin = margin(10, 10, 10, 10)
   )
 
-custom_boxplot_clr
-
-## compose plots
-
-final_plot <- ggarrange(custom_barplot, custom_boxplot_clr,
-                        common.legend = TRUE,
-                        legend = "top",
-                        widths = c(11.5, 4.5))
-
-pdf(file.path(outdir, "custom_combined.pdf"),
-    width = 16,
+pdf(file.path(outdir, "custom_barplot_combined.pdf"),
+    width = 25,
     height = 10)
 
 final_plot
 
 dev.off()
 
-png(file.path(outdir, "custom_combined.png"),
-    width = 14,
+png(file.path(outdir, "custom_barplot_combined.png"),
+    width = 25,
     height = 10,
     units = "in",
     res = 300)
