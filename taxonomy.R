@@ -74,7 +74,6 @@ taxonomy_paths <- list(
 
 get_barplot <- function(target_gene) {
   
-  # Use the argument 'target_gene' to select the path
   df <- read_qza(dada2_paths[[target_gene]])$data
   
   df_long <- data.frame(
@@ -121,8 +120,6 @@ get_barplot <- function(target_gene) {
   plot_levels <- c(top_14_genera, "Other", "Unassigned")
   df_long$Genus_plot <- factor(df_long$Genus_plot, levels = plot_levels)
   
-  # Ensure the color palette works for the specific gene
-  # Assuming barplot_genus_colors is a named vector or list accessible globally
   plot_colors <- barplot_genus_colors 
   
   legend_labels <- sapply(plot_levels, function(label) {
@@ -139,7 +136,6 @@ get_barplot <- function(target_gene) {
   
   if (target_gene == "ITS") {target_gene <- "ITS2"}
   
-  # Construct the plot
   p <- ggplot(df_long, aes(fill = Genus_plot, x = column, y = value)) +
     geom_bar(position = "fill", stat = "identity") +
     scale_fill_manual(
@@ -158,7 +154,7 @@ get_barplot <- function(target_gene) {
       axis.text.x = element_blank(),
       axis.ticks.x = element_blank(),
       axis.title.y = element_text(size = 15),
-      axis.text.y = element_text(size = 12, color = "black"), #margin = margin(r = -2)),
+      axis.text.y = element_text(size = 12, color = "black"),
       axis.ticks.y = element_blank(),
       strip.text = element_text(
         size = 15,
