@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-19                                       ║
-# ║ Last Modified  : 2025-12-02                                       ║
+# ║ Last Modified  : 2025-12-09                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -137,27 +137,29 @@ get_barplot <- function(target_gene) {
                       Cereal = str_replace(Cereal, "AvenaSativa", "Oat"),
                       Cereal = str_replace(Cereal, "HordeumVulgare", "Barley"))
   
+  if (target_gene == "ITS") {target_gene <- "ITS2"}
+  
   # Construct the plot
-  p <- ggplot(df_long, aes(fill = Genus_plot, x = value, y = column)) +
+  p <- ggplot(df_long, aes(fill = Genus_plot, x = column, y = value)) +
     geom_bar(position = "fill", stat = "identity") +
     scale_fill_manual(
-      name = "Genus",
+      name = paste0("Genus (", target_gene, ")"),
       values = plot_colors,
       breaks = plot_levels,
       labels = legend_labels
     ) +
-    labs(x = "Relative abundance", y = NULL) +
+    labs(x = NULL, y = "Relative abundance") +
     theme(
       text = element_text(size = 15),
       legend.title = element_text(size = 15),
       legend.position = "top",
       panel.background = element_blank(),
       panel.border = element_blank(),
-      axis.text.y = element_blank(),
-      axis.ticks.y = element_blank(),
-      axis.title.x = element_text(size = 15),
-      axis.text.x = element_text(size = 12, color = "black", margin = margin(r = -2)),
+      axis.text.x = element_blank(),
       axis.ticks.x = element_blank(),
+      axis.title.y = element_text(size = 15),
+      axis.text.y = element_text(size = 12, color = "black"), #margin = margin(r = -2)),
+      axis.ticks.y = element_blank(),
       strip.text = element_text(
         size = 15,
         color = "black",
@@ -167,10 +169,10 @@ get_barplot <- function(target_gene) {
       strip.placement = "outside",
       strip.background = element_rect(fill = NA, color = NA)
     ) +
-    scale_x_continuous(labels = scales::percent, expand = expansion(mult = c(0, 0.02))) +
-    scale_y_discrete(expand = c(0, 0.7)) +
-    facet_grid(Cereal ~ ., switch = "y", scale = "free_y") +
-    guides(fill = guide_legend(nrow = 2, ncol = 8))
+    scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, 0.02))) +
+    scale_x_discrete(expand = c(0, 0.7)) +
+    facet_grid(. ~ Cereal, switch = "x", scale = "free_x") +
+    guides(fill = guide_legend(nrow = 16, ncol = 1))
   
   return(p)
 }
@@ -178,30 +180,21 @@ get_barplot <- function(target_gene) {
 barplot_ITS  <- get_barplot("ITS")
 barplot_TEF1 <- get_barplot("TEF1")
 
-
 ## Compose plot
 
-barplot_TEF1_clean <- barplot_TEF1 + 
-  theme(
-    strip.text.y = element_blank(),
-    strip.text.y.left = element_blank()
-  )
+barplot_ITS_clean <- barplot_ITS + 
+  theme(strip.text.x = element_blank())
 
-p1 <- barplot_ITS + ggtitle("ITS2") + theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold", color = amplicon_colors[["ITS2"]]))
-p2 <- barplot_TEF1_clean + ggtitle("TEF1") + theme(plot.title = element_text(hjust = 0.5, size = 16, face = "bold", color = amplicon_colors[["TEF1"]]))
-
-final_plot <- p1 + p2 + 
+final_plot <- barplot_ITS_clean / barplot_TEF1 + 
   plot_layout(
     guides = "keep",
     axis_titles = "collect"
   ) & 
   theme(
-    legend.position = "bottom",
-    plot.margin = margin(10, 10, 10, 10)
-  )
+    legend.position = "right")
 
 pdf(file.path(outdir, "custom_barplot_combined.pdf"),
-    width = 25,
+    width = 13,
     height = 10)
 
 final_plot
@@ -209,7 +202,7 @@ final_plot
 dev.off()
 
 png(file.path(outdir, "custom_barplot_combined.png"),
-    width = 25,
+    width = 13,
     height = 10,
     units = "in",
     res = 300)
