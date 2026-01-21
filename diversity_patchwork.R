@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-10-24                                       ║
-# ║ Last Modified  : 2025-10-24                                       ║
+# ║ Last Modified  : 2026-01-21                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -38,6 +38,18 @@ alpha <- (chao1_c + theme(legend.position="none") +
           shannon_c + theme(legend.position="none") +
           simpson_c + theme(legend.position="none")) +
           plot_layout(ncol = 1)
+
+adonis_r2 <- 0.2484     # hardcoded Adonis results for beta div plot
+adonis_r2_adj <- 0.1463 # same
+
+adonis_text <- paste0("Adonis: R² = ",
+                      round(adonis_r2, 3), 
+                      ", Adjusted R² = ",
+                      round(adonis_r2_adj, 3))
+
+rpca_regular <- rpca_regular + 
+  labs(subtitle = adonis_text) +
+  theme(plot.subtitle = element_text(hjust = 0.5, size = 11, face = "plain"))
 
 beta <- rpca_regular / rpca_biplot +
   plot_layout(guides = "collect",

@@ -4,7 +4,7 @@
 # ║ Project        : tenebrio-16S                                     ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-10-15                                       ║
-# ║ Last Modified  : 2025-11-11                                       ║
+# ║ Last Modified  : 2026-01-21                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -344,12 +344,17 @@ dev.off()
 
 ### rPCA (robust Aitchison) biplots
 
+x_label_rpca <- bquote("rPC1 (" * .(round(gemelli_pco1, 2)) * "%) *")
+y_label_rpca <- bquote("rPC2 (" * .(round(gemelli_pco2, 2)) * "%) *")
+
 rpca_regular <- plot_pcoa_rpca(pcoa_vectors = gemelli$data$Vectors,
                                prefix = "PC",
                                pc_x = "PC1",
                                pc_y = "PC2",
                                variance_x = gemelli_pco1,
-                               variance_y = gemelli_pco2)
+                               variance_y = gemelli_pco2) +
+                labs(x = x_label_rpca,
+                     y = y_label_rpca)
 
 rpca_biplot <- plot_pcoa_rpca(pcoa_vectors = gemelli$data$Vectors,
                               prefix = "PC",
@@ -361,7 +366,9 @@ rpca_biplot <- plot_pcoa_rpca(pcoa_vectors = gemelli$data$Vectors,
                               species_vectors = gemelli$data$Species,
                               taxonomy_df = taxonomy,
                               top_n_features = 10,
-                              cleaner_plot = TRUE)
+                              cleaner_plot = TRUE) +
+               labs(x = x_label_rpca,
+                    y = y_label_rpca)
 
 
 
@@ -377,6 +384,14 @@ saveRDS(rpca_biplot, file = file.path(outdir, "rPCA_biplot.RDS"))
 
 ### rPCA by location
 
+adonis_r2 <- 0.6161     # hardcoded Adonis results for beta div plot
+adonis_r2_adj <- 0.5139 # same
+
+adonis_text <- bquote(
+  "Adonis: R² =" ~ .(round(adonis_r2, 3))^"†" * 
+  ", Adjusted R² =" ~ .(round(adonis_r2_adj, 3))^"†"
+)
+
 rpca_regular_location <- plot_pcoa_rpca(pcoa_vectors = gemelli$data$Vectors,
                                         prefix = "PC",
                                         pc_x = "PC1",
@@ -385,7 +400,13 @@ rpca_regular_location <- plot_pcoa_rpca(pcoa_vectors = gemelli$data$Vectors,
                                         variance_y = gemelli_pco2,
                                         grouping_var = "Location",
                                         color_values = location_colors,
-                                        shape_values = location_shapes)
+                                        shape_values = location_shapes) +
+                         labs(x = x_label_rpca,
+                              y = y_label_rpca)
+
+rpca_regular_location <- rpca_regular_location + 
+                         labs(subtitle = adonis_text) +
+                         theme(plot.subtitle = element_text(hjust = 0.5, size = 11, face = "plain"))
 
 rpca_biplot_location <- plot_pcoa_rpca(pcoa_vectors = gemelli$data$Vectors,
                                        prefix = "PC",
@@ -400,7 +421,9 @@ rpca_biplot_location <- plot_pcoa_rpca(pcoa_vectors = gemelli$data$Vectors,
                                        species_vectors = gemelli$data$Species,
                                        taxonomy_df = taxonomy,
                                        top_n_features = 10,
-                                       cleaner_plot = TRUE)
+                                       cleaner_plot = TRUE) +
+                        labs(x = x_label_rpca,
+                             y = y_label_rpca)
 
 rpca_location <- rpca_regular_location / rpca_biplot_location +
   plot_layout(guides = "collect",
