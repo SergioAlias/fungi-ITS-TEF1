@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-10-29                                       ║
-# ║ Last Modified  : 2025-11-12                                       ║
+# ║ Last Modified  : 2026-02-19                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -103,12 +103,17 @@ barplotFromAncombc <- function(qza_path,
                                down_color,
                                up_color,
                                down_legend,
-                               up_legend) 
+                               up_legend,
+                               color_by_sc = FALSE) 
 {
+  
+
+  fusarium_sc_clean <- stats::setNames(fusarium_sc, sub("^Fusarium_", "", names(fusarium_sc)))
   
   ancombc_data <- import_ancombc(qza_path) %>%
     dplyr::left_join(taxonomy_df) %>% 
     dplyr::mutate(
+      Species_Complex = unname(fusarium_sc_clean[Species]),
       tax_label = dplyr::coalesce(Species, Genus, Family, Order, Class, Phylum, Kingdom),
       tax_label_clean = gsub("_", " ", tax_label),
       id_prefix = substr(id, 1, 6),
@@ -139,16 +144,26 @@ barplotFromAncombc <- function(qza_path,
       x = reorder(feature_label_sort, .data[[log2fc_col]]),
       y = .data[[log2fc_col]]
     )
-  ) +
+  )
 
-    ggplot2::geom_col(ggplot2::aes(fill = Order), show.legend = TRUE) +
-    ggplot2::scale_fill_manual(values = barplot_order_ITS_colors) +
+  if (color_by_sc) {
+    b_plot <- b_plot +
+      ggplot2::geom_col(ggplot2::aes(fill = Species_Complex), show.legend = TRUE) +
+      ggplot2::scale_fill_manual(values = barplot_sc_TEF1_colors)
+  } else {
+    b_plot <- b_plot +
+      ggplot2::geom_col(ggplot2::aes(fill = Order), show.legend = TRUE) +
+      ggplot2::scale_fill_manual(values = barplot_order_ITS_colors)
+  }
+  
+  b_plot <- b_plot +
     ggplot2::geom_hline(yintercept = logfccutoff, linetype = "dashed", color = "grey50") +
     ggplot2::geom_hline(yintercept = -logfccutoff, linetype = "dashed", color = "grey50") +
     
     ggplot2::labs(
       y = y_axis_label,
-      title = NULL
+      title = NULL,
+      fill = ifelse(color_by_sc, "Species Complex", "Order")
     ) +
     
     ggplot2::theme_classic() +
@@ -205,7 +220,7 @@ barplotFromAncombc <- function(qza_path,
 
 ## Import QIIME 2 files
 
-project_name <- "grano_ITS"
+project_name <- "grano_TEF1"
 out <- "grano-ITS-TEF1"
 bar_tag <- "HordeumVulgare"
 oat_tag <- "AvenaSativa"
@@ -382,7 +397,8 @@ b_bar_vs_whe <- barplotFromAncombc(
   down_color = cereal_colors[["Wheat"]],
   up_color = cereal_colors[["Barley"]],
   down_legend = "Wheat",
-  up_legend = "Barley")
+  up_legend = "Barley",
+  color_by_sc = TRUE)
 
 
 b_bar_vs_whe
@@ -399,8 +415,8 @@ b_oat_vs_whe <- barplotFromAncombc(
   down_color = cereal_colors[["Wheat"]],
   up_color = cereal_colors[["Oat"]],
   down_legend = "Wheat",
-  up_legend = "Oat")
-
+  up_legend = "Oat",
+  color_by_sc = TRUE)
 
 b_oat_vs_whe
 
@@ -416,7 +432,8 @@ b_oat_vs_bar <- barplotFromAncombc(
   down_color = cereal_colors[["Barley"]],
   up_color = cereal_colors[["Oat"]],
   down_legend = "Barley",
-  up_legend = "Oat")
+  up_legend = "Oat",
+  color_by_sc = TRUE)
 
 
 b_oat_vs_bar
@@ -424,18 +441,18 @@ b_oat_vs_bar
 ### Barplot legend
 
 legend_data_b <- data.frame(
-  Order = names(barplot_order_ITS_colors)
+  sc = names(barplot_sc_TEF1_colors)
 )
 
-legend_plot_b <- ggplot(legend_data_b, aes(x = 1, fill = Order)) +
+legend_plot_b <- ggplot(legend_data_b, aes(x = 1, fill = sc)) +
   geom_bar(alpha = 1) + 
   scale_fill_manual(
-    name = "Order",
-    values = barplot_order_ITS_colors,
-    breaks = names(barplot_order_ITS_colors)
+    name = "Species Complex",
+    values = barplot_sc_TEF1_colors,
+    breaks = names(barplot_sc_TEF1_colors)
   ) +
   theme_void() +
-  guides(fill = guide_legend(nrow = 2,
+  guides(fill = guide_legend(nrow = 1,
                              title.position = "left"))
 
 b_legend <- plot_grid(cowplot::get_legend(legend_plot_b))

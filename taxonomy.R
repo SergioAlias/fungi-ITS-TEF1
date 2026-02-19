@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-19                                       ║
-# ║ Last Modified  : 2025-12-09                                       ║
+# ║ Last Modified  : 2026-02-19                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -276,42 +276,8 @@ its_long  %<>%
 comb_long <- rbind(its_long, tef1_long)
 
 comb_long  %<>%
-  mutate(sc = case_when(
-  variable == "Fusarium_sp" ~ " ",
-  variable == "Fusarium_tricinctum" ~ "FTSC",
-  variable == "Fusarium_oxysporum" ~ "FOSC",
-  variable == "Fusarium_sporotrichioides" ~ "FSAMSC",
-  variable == "Fusarium_redolens" ~ "FRSC",
-  variable == "Fusarium_poae" ~ "FSAMSC",
-  variable == "Fusarium_subglutinans" ~ "FFSC",
-  variable == "Fusarium_scirpi" ~ "FIESC",
-  variable == "Fusarium_coffeatum" ~ "FIESC",
-  variable == "Fusarium_hostae" ~ "FRSC",
-  variable == "Fusarium_iranicum" ~ "FTSC",
-  variable == "Fusarium_clavum" ~ "FIESC",
-  variable == "Fusarium_avenaceum" ~ "FTSC",
-  variable == "Fusarium_equiseti" ~ "FIESC",
-  variable == "Fusarium_pseudograminearum" ~ "FSAMSC",
-  variable == "Fusarium_acuminatum" ~ "FTSC",
-  variable == "Fusarium_langsethiae" ~ "FSAMSC",
-  variable == "Fusarium_torolosum" ~ "FTSC",
-  variable == "Fusarium_flagelliforme" ~ "FIESC",
-  variable == "FSAMSC26" ~ "FSAMSC",
-  variable == "Fusarium_proliferatum" ~ "FFSC",
-  variable == "Fusarium_graminearum" ~ "FSAMSC",
-  variable == "Fusarium_gracilipes" ~ "FIESC",
-  variable == "FFSCundesc" ~ "FFSC",
-  variable == "Fusarium_flocciferum" ~ "FTSC",
-  variable == "Fusarium_gamsii" ~ "FTSC",
-  variable == "FSAMSC25" ~ "FSAMSC",
-  variable == "Fusarium_lactis" ~ "FFSC",
-  variable == "Fusarium_culmorum" ~ "FSAMSC",
-  variable == "FTSCundesc" ~ "FTSC",
-  variable == "Fusarium_cerealis" ~ "FSAMSC",
-  variable == "Fusarium_nodosum" ~ "FSAMSC",
-  variable == "Fusarium_nelsonii" ~ "FCSC",
-  TRUE ~ "YOU SHOULD NOT BE SEEING THIS"
-))
+  mutate(sc = unname(fusarium_sc[variable]),
+         sc = if_else(is.na(sc), "YOU SHOULD NOT BE SEEING THIS", sc))
 
 comb_long %<>% mutate(variable = str_replace(variable, "^Fusarium_", "F. "),
                       Sample = str_replace(Sample, "Triticum", "Wheat"),
