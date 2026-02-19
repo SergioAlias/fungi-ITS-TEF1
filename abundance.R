@@ -18,6 +18,7 @@ library(tidyverse)
 library(EnhancedVolcano)
 library(cowplot)
 library(patchwork)
+library(ggtext)
 
 ## Colors and shapes
 
@@ -104,10 +105,11 @@ barplotFromAncombc <- function(qza_path,
                                up_color,
                                down_legend,
                                up_legend,
-                               color_by_sc = FALSE) 
+                               color_by_sc = FALSE,
+                               plot_species_names = FALSE) 
 {
   
-
+  
   fusarium_sc_clean <- stats::setNames(fusarium_sc, sub("^Fusarium_", "", names(fusarium_sc)))
   
   ancombc_data <- import_ancombc(qza_path) %>%
@@ -138,6 +140,26 @@ barplotFromAncombc <- function(qza_path,
     ylab
   }
   
+  format_species_labels <- function(labels) {
+    sapply(labels, function(x) {
+      # 1. Separar el nombre de lo que hay entre paréntesis
+      if (grepl("\\(.*\\)$", x)) {
+        nombre <- sub("\\s*\\(.*\\)$", "", x)       # Extrae "oxysporum"
+        id <- sub("^.*(\\s*\\(.*\\)$)", "\\1", x)    # Extrae " (1a2b3c)"
+      } else {
+        nombre <- x
+        id <- ""
+      }
+      
+      # 2. Si el nombre no empieza por F mayúscula, le añadimos "Fusarium "
+      if (!grepl("^F", nombre)) {
+        nombre <- paste0("F. ", nombre)
+        paste0("<i>", nombre, "</i> ", id)
+      } else {
+        paste0(nombre, " ", id)}
+    }, USE.NAMES = FALSE)
+  }
+  
   b_plot <- ggplot2::ggplot(
     plot_data,
     ggplot2::aes(
@@ -145,7 +167,7 @@ barplotFromAncombc <- function(qza_path,
       y = .data[[log2fc_col]]
     )
   )
-
+  
   if (color_by_sc) {
     b_plot <- b_plot +
       ggplot2::geom_col(ggplot2::aes(fill = Species_Complex), show.legend = TRUE) +
@@ -160,6 +182,8 @@ barplotFromAncombc <- function(qza_path,
     ggplot2::geom_hline(yintercept = logfccutoff, linetype = "dashed", color = "grey50") +
     ggplot2::geom_hline(yintercept = -logfccutoff, linetype = "dashed", color = "grey50") +
     
+    ggplot2::scale_x_discrete(labels = format_species_labels) +
+    
     ggplot2::labs(
       y = y_axis_label,
       title = NULL,
@@ -171,10 +195,21 @@ barplotFromAncombc <- function(qza_path,
     ggplot2::theme(
       legend.position = "top",
       axis.title.x = element_blank(),
-      axis.ticks.x = element_blank(),
-      axis.line.x = element_blank(),
-      axis.text.x = element_blank()
+      axis.ticks.x = ggplot2::element_blank(),
+      axis.line.x = element_blank()
     )
+  
+  if (plot_species_names) {
+    b_plot <- b_plot + 
+      ggplot2::theme(
+        axis.text.x = ggtext::element_markdown(angle = 45, hjust = 1, vjust = 1, size = 10),
+      )
+  } else {
+    b_plot <- b_plot + 
+      ggplot2::theme(
+        axis.text.x = ggplot2::element_blank(),
+      )
+  }
   
   if (nrow(plot_data) > 0) {
     n_neg <- sum(plot_data[[log2fc_col]] < 0)
@@ -277,7 +312,7 @@ v_bar_vs_whe <- volcanoFromAncombc(qza_path = cereal_wheat_file_path,
                                     subtitle = NULL,
                                     caption = NULL,
                                     xlim = c(-8, 8),
-                                    ylim = c(0, 60),
+                                    ylim = c(0, 20),
                                     drawConnectors = TRUE,
                                     typeConnectors = "open",
                                     widthConnectors = 0,
@@ -312,7 +347,7 @@ v_oat_vs_whe <- volcanoFromAncombc(qza_path = cereal_wheat_file_path,
                                    subtitle = NULL,
                                    caption = NULL,
                                    xlim = c(-8, 8),
-                                   ylim = c(0, 60),
+                                   ylim = c(0, 20),
                                    drawConnectors = TRUE,
                                    typeConnectors = "open",
                                    widthConnectors = 0,
@@ -347,7 +382,7 @@ v_oat_vs_bar <- volcanoFromAncombc(qza_path = cereal_barley_file_path,
                                    subtitle = NULL,
                                    caption = NULL,
                                    xlim = c(-8, 8),
-                                   ylim = c(0, 60),
+                                   ylim = c(0, 20),
                                    drawConnectors = TRUE,
                                    typeConnectors = "open",
                                    widthConnectors = 0,
@@ -392,14 +427,14 @@ b_bar_vs_whe <- barplotFromAncombc(
   taxonomy_df = taxonomy,
   pcutoff = 0.05,
   logfccutoff = 2,
-  ylim = c(-5.5, 5.5), 
+  ylim = c(-4, 4), 
   ylab = bquote(~Log[2]~ "fold change"),
   down_color = cereal_colors[["Wheat"]],
   up_color = cereal_colors[["Barley"]],
   down_legend = "Wheat",
   up_legend = "Barley",
-  color_by_sc = TRUE)
-
+  color_by_sc = TRUE,
+  plot_species_names = TRUE)
 
 b_bar_vs_whe
 
@@ -410,13 +445,14 @@ b_oat_vs_whe <- barplotFromAncombc(
   taxonomy_df = taxonomy,
   pcutoff = 0.05,
   logfccutoff = 2,
-  ylim = c(-5.5, 5.5), 
+  ylim = c(-4, 4), 
   ylab = bquote(~Log[2]~ "fold change"),
   down_color = cereal_colors[["Wheat"]],
   up_color = cereal_colors[["Oat"]],
   down_legend = "Wheat",
   up_legend = "Oat",
-  color_by_sc = TRUE)
+  color_by_sc = TRUE,
+  plot_species_names = TRUE)
 
 b_oat_vs_whe
 
@@ -427,13 +463,14 @@ b_oat_vs_bar <- barplotFromAncombc(
   taxonomy_df = taxonomy,
   pcutoff = 0.05,
   logfccutoff = 2,
-  ylim = c(-5.5, 5.5), 
+  ylim = c(-4, 4), 
   ylab = bquote(~Log[2]~ "fold change"),
   down_color = cereal_colors[["Barley"]],
   up_color = cereal_colors[["Oat"]],
   down_legend = "Barley",
   up_legend = "Oat",
-  color_by_sc = TRUE)
+  color_by_sc = TRUE,
+  plot_species_names = TRUE)
 
 
 b_oat_vs_bar
@@ -487,7 +524,7 @@ p_b <- plot_spacer() / b_legend / b_bars +
 v_b <- ggarrange(p_b, p_v, 
                  ncol = 1, 
                  nrow = 2, 
-                 heights = c(3, 4))
+                 heights = c(5, 4))
 
 ## Save plots
 
