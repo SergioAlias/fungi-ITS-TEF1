@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-10-29                                       ║
-# ║ Last Modified  : 2026-02-19                                       ║
+# ║ Last Modified  : 2026-03-04                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -427,7 +427,7 @@ b_bar_vs_whe <- barplotFromAncombc(
   taxonomy_df = taxonomy,
   pcutoff = 0.05,
   logfccutoff = 2,
-  ylim = c(-4, 4), 
+  ylim = c(-2, 2), 
   ylab = bquote(~Log[2]~ "fold change"),
   down_color = cereal_colors[["Wheat"]],
   up_color = cereal_colors[["Barley"]],
@@ -445,7 +445,7 @@ b_oat_vs_whe <- barplotFromAncombc(
   taxonomy_df = taxonomy,
   pcutoff = 0.05,
   logfccutoff = 2,
-  ylim = c(-4, 4), 
+  ylim = c(-2, 2), 
   ylab = bquote(~Log[2]~ "fold change"),
   down_color = cereal_colors[["Wheat"]],
   up_color = cereal_colors[["Oat"]],
@@ -463,7 +463,7 @@ b_oat_vs_bar <- barplotFromAncombc(
   taxonomy_df = taxonomy,
   pcutoff = 0.05,
   logfccutoff = 2,
-  ylim = c(-4, 4), 
+  ylim = c(-2, 2), 
   ylab = bquote(~Log[2]~ "fold change"),
   down_color = cereal_colors[["Barley"]],
   up_color = cereal_colors[["Oat"]],
@@ -527,6 +527,17 @@ v_b <- ggarrange(p_b, p_v,
                  heights = c(5, 4))
 
 ## Save plots
+
+png(file.path(outdir, "da_barplot_TEF1.png"),
+    width = 12,
+    height = 4,
+    units = "in",
+    res = 300)
+
+p_b
+
+dev.off()
+
 
 pdf(file.path(outdir, "da.pdf"),
     width = 12,
