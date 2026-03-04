@@ -516,7 +516,7 @@ b_bars <- (b_bar_vs_whe + theme(legend.position="none") +
         b_oat_vs_bar + theme(legend.position="none")) +
         plot_layout(axis_titles = "collect",
                     axes = "collect",
-                    widths = c(9, 1, 9, 1, 9))
+                    widths = c(6.75, 1, 6.75, 1, 13.5)) # use c(9, 1, 9, 1, 9) for equal widths
 
 p_b <- plot_spacer() / b_legend / b_bars + 
   plot_layout(heights = c(0.2, 1.5, 7))
