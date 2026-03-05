@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-10-29                                       ║
-# ║ Last Modified  : 2026-03-04                                       ║
+# ║ Last Modified  : 2026-03-05                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -187,7 +187,7 @@ barplotFromAncombc <- function(qza_path,
     ggplot2::labs(
       y = y_axis_label,
       title = NULL,
-      fill = ifelse(color_by_sc, "Species Complex", "Order")
+      fill = ifelse(color_by_sc, "Species complex", "Order")
     ) +
     
     ggplot2::theme_classic() +
@@ -484,7 +484,7 @@ legend_data_b <- data.frame(
 legend_plot_b <- ggplot(legend_data_b, aes(x = 1, fill = sc)) +
   geom_bar(alpha = 1) + 
   scale_fill_manual(
-    name = "Species Complex",
+    name = "Species complex",
     values = barplot_sc_TEF1_colors,
     breaks = names(barplot_sc_TEF1_colors)
   ) +
