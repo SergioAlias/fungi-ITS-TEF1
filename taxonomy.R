@@ -207,6 +207,24 @@ final_plot
 
 dev.off()
 
+ITS_plot <- barplot_ITS + 
+  plot_layout(
+    guides = "keep",
+    axis_titles = "collect"
+  ) & 
+  theme(
+    legend.position = "right")
+
+png(file.path(outdir, "barplot_ITS.png"),
+    width =13,
+    height = 5,
+    units = "in",
+    res = 300)
+
+ITS_plot
+
+dev.off()
+
 ## Bubble plot
 
 tef1_wide <- read_qza("/home/sergio/projects/fungi-ITS-TEF1/local/TEF1_filtered_table.qza")$data
