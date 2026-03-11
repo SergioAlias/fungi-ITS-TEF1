@@ -38,7 +38,7 @@ project_dir <- file.path(cluster_path,
                          project_name)
 outdir <- file.path("/home/sergio/scratch",
                     out,
-                    "beta")
+                    "beta_tef1")
 
 jaccard_file_path <- file.path(project_dir,
                                "qiime2/diversity/jaccard_pcoa_results.qza")
@@ -395,7 +395,7 @@ adonis_r2_adj <- 0.5139 # same
 
 adonis_text <- bquote(
   "Adonis: R² =" ~ .(round(adonis_r2, 3))^"†" * 
-  ", Adjusted R² =" ~ .(round(adonis_r2_adj, 3))^"†"
+  ", Adjusted R² =" ~ .(round(adonis_r2_adj, 3))^"†" # add ^"†" for significant PERMDISP
 )
 
 rpca_regular_location <- plot_pcoa_rpca(pcoa_vectors = gemelli$data$Vectors,
