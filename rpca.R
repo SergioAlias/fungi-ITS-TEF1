@@ -1,10 +1,10 @@
 # ╔═══════════════════════════════════════════════════════════════════╗
 # ║                            rpca.R                                 ║
 # ╠═══════════════════════════════════════════════════════════════════╣
-# ║ Project        : tenebrio-16S                                     ║
+# ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-10-15                                       ║
-# ║ Last Modified  : 2026-01-21                                       ║
+# ║ Last Modified  : 2026-03-11                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -23,8 +23,8 @@ library(viridisLite)
 
 ## Import QIIME 2 files
 
-project_name <- "grano_ITS" # grano_ITS or grano_TEF1
-amplicon <- "ITS" # ITS or TEF1
+project_name <- "grano_TEF1" # grano_ITS or grano_TEF1
+amplicon <- "TEF1" # ITS or TEF1
 local_metadata <- project_name
 out <- "grano-ITS-TEF1"
 
@@ -56,9 +56,15 @@ bray_curtis <- read_qza(bray_curtis_file_path)
 aitchison <- read_qza(aitchison_file_path)
 gemelli <- read_qza(gemelli_file_path)
 taxonomy <- read_qza(taxonomy_file_path)$data %>% parse_taxonomy()
+taxonomy$Species <- gsub("'", "", taxonomy$Species)
 taxonomy %<>%
   tibble::rownames_to_column(var = "FeatureID") %>%
   mutate(
+    Species = if_else(
+      condition = amplicon == "TEF1" & !is.na(Species),
+      true      = paste(Genus, Species, sep = " "),
+      false     = Species
+    ),
     feature_short = substr(FeatureID, 1, 6),
     taxa_level = case_when(
       !is.na(Species) ~ "Species",
