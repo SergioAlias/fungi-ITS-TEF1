@@ -55,13 +55,23 @@ beta <- rpca_regular / rpca_biplot +
   plot_layout(guides = "collect",
               axes = "collect")
 
+beta <- rpca_regular + 
+  inset_element(
+    rpca_biplot + 
+      theme_void() + 
+      theme(plot.background = element_rect(color = "black", fill = "white", linewidth = 0.5)), 
+    left = 0.7, bottom = 0.015, right = 1, top = 0.255
+  ) +
+  plot_layout(guides = "collect",
+              axes = "collect")
+
 div <- (alpha | plot_spacer() | beta) +
-  plot_layout(widths = c(2, 0.1, 3))
+  plot_layout(widths = c(2, 0.1, 5))
 
 ## Save plot
 
 pdf(file.path(outdir, "patched_div.pdf"),
-    width = 10,
+    width = 11,
     height = 6)
 
 div
@@ -69,7 +79,7 @@ div
 dev.off()
 
 png(file.path(outdir, "patched_div.png"),
-    width = 10,
+    width = 11,
     height = 6,
     units = "in",
     res = 300)

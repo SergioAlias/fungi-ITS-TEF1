@@ -23,8 +23,8 @@ library(viridisLite)
 
 ## Import QIIME 2 files
 
-project_name <- "grano_TEF1" # grano_ITS or grano_TEF1
-amplicon <- "TEF1" # ITS or TEF1
+project_name <- "grano_ITS" # grano_ITS or grano_TEF1
+amplicon <- "ITS" # ITS or TEF1
 local_metadata <- project_name
 out <- "grano-ITS-TEF1"
 
@@ -38,7 +38,7 @@ project_dir <- file.path(cluster_path,
                          project_name)
 outdir <- file.path("/home/sergio/scratch",
                     out,
-                    "beta_tef1")
+                    "beta")
 
 jaccard_file_path <- file.path(project_dir,
                                "qiime2/diversity/jaccard_pcoa_results.qza")
@@ -168,7 +168,7 @@ plot_pcoa_rpca <- function(pcoa_vectors = bray_curtis$data$Vectors,
   xlab_text <- paste0(prefix, sub("PC", "", pc_x), " (", variance_x, "%)")
   ylab_text <- paste0(prefix, sub("PC", "", pc_y), " (", variance_y, "%)")
   
-  point_alpha_val <- if (cleaner_plot) 0.3 else 1.0
+  point_alpha_val <- if (cleaner_plot) 0.1 else 1.0
   
   p <- ggplot(plot_data_with_centroids,
               aes(x = !!pc_x_sym, y = !!pc_y_sym, color = !!grouping_sym, shape = !!grouping_sym))
@@ -176,7 +176,7 @@ plot_pcoa_rpca <- function(pcoa_vectors = bray_curtis$data$Vectors,
   if (cleaner_plot) {
     p <- p + geom_polygon(data = hull_data, 
                           aes(fill = !!grouping_sym), 
-                          alpha = 0.03, 
+                          alpha = 0.02, 
                           show.legend = FALSE,
                           linetype = "blank") 
   } else {
@@ -431,26 +431,32 @@ rpca_biplot_location <- plot_pcoa_rpca(pcoa_vectors = gemelli$data$Vectors,
                         labs(x = x_label_rpca,
                              y = y_label_rpca)
 
-rpca_location <- rpca_regular_location / rpca_biplot_location +
+rpca_location_inset <- rpca_regular_location + 
+  inset_element(
+    rpca_biplot_location + 
+      theme_void() + 
+      theme(plot.background = element_rect(color = "black", fill = "white", linewidth = 0.5)), 
+    left = 0.7, bottom = 0.015, right = 1, top = 0.255
+  ) +
   plot_layout(guides = "collect",
               axes = "collect")
 
 ## Save location plots
 
 pdf(file.path(outdir, "rpca_location.pdf"),
-    width = 7,
+    width = 8,
     height = 6)
 
-rpca_location
+rpca_location_inset
 
 dev.off()
 
 png(file.path(outdir, "rpca_location.png"),
-    width = 7,
+    width = 8,
     height = 6,
     units = "in",
     res = 300)
 
-rpca_location
+rpca_location_inset
 
 dev.off()
