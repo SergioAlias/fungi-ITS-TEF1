@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-10-15                                       ║
-# ║ Last Modified  : 2026-03-11                                       ║
+# ║ Last Modified  : 2026-03-12                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -23,8 +23,8 @@ library(viridisLite)
 
 ## Import QIIME 2 files
 
-project_name <- "grano_ITS" # grano_ITS or grano_TEF1
-amplicon <- "ITS" # ITS or TEF1
+project_name <- "grano_TEF1" # grano_ITS or grano_TEF1
+amplicon <- "TEF1" # ITS or TEF1
 local_metadata <- project_name
 out <- "grano-ITS-TEF1"
 
@@ -384,8 +384,8 @@ rpca_regular + rpca_biplot +
 
 ## Save RDS
 
-saveRDS(rpca_regular, file = file.path(outdir, "rPCA_regular.RDS"))
-saveRDS(rpca_biplot, file = file.path(outdir, "rPCA_biplot.RDS"))
+saveRDS(rpca_regular, file = file.path(outdir, paste0("rPCA_regular_", amplicon, ".RDS")))
+saveRDS(rpca_biplot, file = file.path(outdir, paste0("rPCA_biplot_", amplicon, ".RDS")))
 
 
 ### rPCA by location

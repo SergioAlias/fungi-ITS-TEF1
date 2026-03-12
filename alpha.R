@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-23                                       ║
-# ║ Last Modified  : 2025-11-05                                       ║
+# ║ Last Modified  : 2026-03-12                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -21,8 +21,8 @@ library(rstatix)
 
 ## Import QIIME 2 files
 
-project_name <- "grano_ITS" # grano_ITS or grano_TEF1
-amplicon <- "ITS" # ITS or TEF1
+project_name <- "grano_TEF1" # grano_ITS or grano_TEF1
+amplicon <- "TEF1" # ITS or TEF1
 local_metadata <- project_name
 out <- "grano-ITS-TEF1"
 
@@ -116,11 +116,19 @@ plot_alpha <- function(alpha_metric,
 
 ### Shannon
 
-shannon_letters <- data.frame(
-  Cereal = c("Oat", "Barley", "Wheat"),
-  Letter = c("a", "a", "b"),
-  Position = rep(0.4, 3)
-)
+if (amplicon == "ITS") {
+  shannon_letters <- data.frame(
+    Cereal = c("Oat", "Barley", "Wheat"),
+    Letter = c("a", "a", "b"),
+    Position = rep(0.4, 3)
+    )
+} else if (amplicon == "TEF1") {
+  shannon_letters <- data.frame(
+    Cereal = c("Oat", "Barley", "Wheat"),
+    Letter = c("a", "a", "a"),
+    Position = rep(0.2, 3)
+  )
+}
 
 pdf(file.path(outdir, "shannon_cereal.pdf"))
 
@@ -135,11 +143,19 @@ dev.off()
 
 ### Simpson
 
-simpson_letters <- data.frame(
-  Cereal = c("Oat", "Barley", "Wheat"),
-  Letter = c("a", "a", "b"),
-  Position = rep(0.1, 3)
-)
+if (amplicon == "ITS") {
+  simpson_letters <- data.frame(
+    Cereal = c("Oat", "Barley", "Wheat"),
+    Letter = c("a", "a", "b"),
+    Position = rep(0.1, 3)
+    )
+} else if (amplicon == "TEF1") {
+  simpson_letters <- data.frame(
+    Cereal = c("Oat", "Barley", "Wheat"),
+    Letter = c("a", "a", "a"),
+    Position = rep(0.02, 3)
+  )
+}
 
 pdf(file.path(outdir, "simpson_cereal.pdf"))
 
@@ -153,11 +169,19 @@ dev.off()
 
 ### Chao1
 
-chao1_letters <- data.frame(
-  Cereal = c("Oat", "Barley", "Wheat"),
-  Letter = c("a", "a", "a"),
-  Position = rep(6, 3)
-)
+if (amplicon == "ITS") {
+  chao1_letters <- data.frame(
+    Cereal = c("Oat", "Barley", "Wheat"),
+    Letter = c("a", "a", "a"),
+    Position = rep(6, 3)
+    )
+} else if (amplicon == "TEF1") {
+  chao1_letters <- data.frame(
+    Cereal = c("Oat", "Barley", "Wheat"),
+    Letter = c("a", "a", "a"),
+    Position = rep(2, 3)
+  )
+}
 
 pdf(file.path(outdir, "chao1_cereal.pdf"))
 
@@ -186,6 +210,6 @@ dev.off()
 
 ### Save RDS
 
-saveRDS(chao1_c, file = file.path(outdir, "chao1.RDS"))
-saveRDS(shannon_c, file = file.path(outdir, "shannon.RDS"))
-saveRDS(simpson_c, file = file.path(outdir, "simpson.RDS"))
+saveRDS(chao1_c, file = file.path(outdir, paste0("chao1_", amplicon, ".RDS")))
+saveRDS(shannon_c, file = file.path(outdir, paste0("shannon_", amplicon, ".RDS")))
+saveRDS(simpson_c, file = file.path(outdir, paste0("simpson_", amplicon, ".RDS")))
