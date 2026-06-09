@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-10-29                                       ║
-# ║ Last Modified  : 2026-03-05                                       ║
+# ║ Last Modified  : 2026-06-09                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -106,7 +106,8 @@ barplotFromAncombc <- function(qza_path,
                                down_legend,
                                up_legend,
                                color_by_sc = FALSE,
-                               plot_species_names = FALSE) 
+                               plot_species_names = FALSE,
+                               force_legend = FALSE) 
 {
   
   
@@ -125,6 +126,19 @@ barplotFromAncombc <- function(qza_path,
   plot_data <- ancombc_data %>%
     dplyr::filter(.data[[pval_col]] < pcutoff)
   
+  if (isTRUE(force_legend == "up") || isTRUE(force_legend == "down")) {
+    forced_row <- data.frame(
+      feature_label_sort = "",
+      Species_Complex = NA,
+      Order = NA,
+      stringsAsFactors = FALSE
+    )
+    forced_row[[log2fc_col]] <- 0
+    forced_row[[pval_col]] <- 0
+    
+    plot_data <- dplyr::bind_rows(plot_data, forced_row)
+  }
+  
   if (nrow(plot_data) == 0) {
     message("No features found with ", pval_col, " < ", pcutoff)
     return(
@@ -142,6 +156,7 @@ barplotFromAncombc <- function(qza_path,
   
   format_species_labels <- function(labels) {
     sapply(labels, function(x) {
+      if (is.na(x) || x == "") return("")
       # 1. Separar el nombre de lo que hay entre paréntesis
       if (grepl("\\(.*\\)$", x)) {
         nombre <- sub("\\s*\\(.*\\)$", "", x)       # Extrae "oxysporum"
@@ -169,13 +184,15 @@ barplotFromAncombc <- function(qza_path,
   )
   
   if (color_by_sc) {
+    sc_breaks <- unique(plot_data$Species_Complex[!is.na(plot_data$Species_Complex)])
     b_plot <- b_plot +
       ggplot2::geom_col(ggplot2::aes(fill = Species_Complex), show.legend = TRUE) +
-      ggplot2::scale_fill_manual(values = barplot_sc_TEF1_colors)
+      ggplot2::scale_fill_manual(values = barplot_sc_TEF1_colors, breaks = sc_breaks)
   } else {
+    order_breaks <- unique(plot_data$Order[!is.na(plot_data$Order)])
     b_plot <- b_plot +
       ggplot2::geom_col(ggplot2::aes(fill = Order), show.legend = TRUE) +
-      ggplot2::scale_fill_manual(values = barplot_order_ITS_colors)
+      ggplot2::scale_fill_manual(values = barplot_order_ITS_colors, breaks = order_breaks)
   }
   
   b_plot <- b_plot +
@@ -214,6 +231,9 @@ barplotFromAncombc <- function(qza_path,
   if (nrow(plot_data) > 0) {
     n_neg <- sum(plot_data[[log2fc_col]] < 0)
     n_pos <- sum(plot_data[[log2fc_col]] > 0)
+    
+    if (isTRUE(force_legend == "down") && n_neg == 0) n_neg <- 1
+    if (isTRUE(force_legend == "up") && n_pos == 0) n_pos <- 1
     
     if (n_neg > 0) {
       b_plot <- b_plot +
@@ -470,7 +490,8 @@ b_oat_vs_bar <- barplotFromAncombc(
   down_legend = "Barley",
   up_legend = "Oat",
   color_by_sc = TRUE,
-  plot_species_names = TRUE)
+  plot_species_names = TRUE,
+  force_legend = "down")
 
 
 b_oat_vs_bar
@@ -516,7 +537,7 @@ b_bars <- (b_bar_vs_whe + theme(legend.position="none") +
         b_oat_vs_bar + theme(legend.position="none")) +
         plot_layout(axis_titles = "collect",
                     axes = "collect",
-                    widths = c(6.75, 1, 6.75, 1, 13.5)) # use c(9, 1, 9, 1, 9) for equal widths
+                    widths = c(6.5, 1, 6.5, 1, 14)) # use c(9, 1, 9, 1, 9) for equal widths
 
 p_b <- plot_spacer() / b_legend / b_bars + 
   plot_layout(heights = c(0.2, 1.5, 7))
