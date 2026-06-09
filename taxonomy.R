@@ -4,7 +4,7 @@
 # ║ Project        : fungi-ITS-TEF1                                   ║
 # ║ Author         : Sergio Alías-Segura                              ║
 # ║ Created        : 2025-09-19                                       ║
-# ║ Last Modified  : 2026-02-19                                       ║
+# ║ Last Modified  : 2026-06-09                                       ║
 # ║ GitHub Repo    : https://github.com/SergioAlias/fungi-ITS-TEF1    ║
 # ║ Contact        : salias[at]ucm[dot]es                             ║
 # ╚═══════════════════════════════════════════════════════════════════╝
@@ -113,17 +113,17 @@ get_barplot <- function(target_gene) {
       Genus_plot = case_when(
         Genus %in% top_14_genera ~ Genus,
         Genus == "Unassigned" ~ "Unassigned",
-        TRUE ~ "Other"
+        TRUE ~ "Other genera"
       )
     )
   
-  plot_levels <- c(top_14_genera, "Other", "Unassigned")
+  plot_levels <- c(top_14_genera, "Other genera", "Unassigned")
   df_long$Genus_plot <- factor(df_long$Genus_plot, levels = plot_levels)
   
   plot_colors <- barplot_genus_colors 
   
   legend_labels <- sapply(plot_levels, function(label) {
-    if (label %in% c("Unassigned", "Other")) {
+    if (label %in% c("Unassigned", "Other genera")) {
       return(label) 
     } else {
       return(bquote(italic(.(label))))
